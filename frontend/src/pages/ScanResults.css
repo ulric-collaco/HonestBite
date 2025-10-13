@@ -1,0 +1,154 @@
+.results-page .page-header {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+}
+
+.score-display {
+  margin-bottom: 1.25rem;
+}
+
+.score-number {
+  font-size: 4rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.score-label {
+  font-size: 1.125rem;
+  opacity: 0.92;
+  margin-top: 0.625rem;
+  font-weight: 500;
+}
+
+.data-source {
+  font-size: 0.8125rem;
+  opacity: 0.85;
+  margin-top: 0.625rem;
+  font-weight: 400;
+}
+
+.alerts-section {
+  margin-bottom: 1.5rem;
+}
+
+.alert-icon {
+  margin-right: 0.625rem;
+  font-size: 1.125rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.info-value {
+  color: var(--text-primary);
+  text-align: right;
+  font-weight: 500;
+  font-size: 0.9375rem;
+}
+
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.875rem;
+  margin-top: 1rem;
+}
+
+.nutrition-item {
+  background-color: var(--surface);
+  padding: 1.125rem 1rem;
+  border-radius: 0.875rem;
+  border: 1px solid var(--border-light);
+  transition: all 0.25s ease;
+}
+
+.nutrition-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px var(--shadow-sm);
+}
+
+.nutrition-label {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.375rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.nutrition-value {
+  display: block;
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.ingredients-text {
+  line-height: 1.75;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+.risk-list {
+  list-style: none;
+  padding: 0;
+}
+
+.risk-list li {
+  padding: 0.875rem 1rem;
+  background-color: #fef8f1;
+  border-left: 3px solid var(--warning-soft);
+  margin-bottom: 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+}
+
+.greenwashing-card {
+  background-color: #fef5f5;
+  border: 1.5px solid var(--danger-soft);
+}
+
+.buzzword-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+}
+
+.buzzword-tag {
+  background-color: var(--danger-soft);
+  color: #8b5858;
+  padding: 0.5rem 1rem;
+  border-radius: 1.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid #e0b7b7;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 768px) {
+  .score-number {
+    font-size: 2.75rem;
+  }
+  
+  .nutrition-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}

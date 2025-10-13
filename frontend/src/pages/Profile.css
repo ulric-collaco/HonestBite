@@ -1,0 +1,171 @@
+.profile-page {
+  background-color: var(--background);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.125rem;
+}
+
+.btn-edit {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.625rem 1.125rem;
+  border-radius: 0.625rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.01em;
+}
+
+.btn-edit:hover {
+  background-color: var(--primary-light);
+  transform: translateY(-1px);
+}
+
+.user-id-text {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  background-color: var(--surface);
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-light);
+  word-break: break-all;
+  letter-spacing: 0.02em;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+}
+
+.tag {
+  padding: 0.625rem 1.125rem;
+  border-radius: 1.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  transition: all 0.25s ease;
+}
+
+.tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px var(--shadow-sm);
+}
+
+.tag-health {
+  background-color: var(--primary-light);
+  color: #5a6e94;
+  border-color: #c5d0e3;
+}
+
+.tag-allergy {
+  background-color: var(--danger-soft);
+  color: #8b5858;
+  border-color: #e0b7b7;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.875rem;
+  margin-top: 1.125rem;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  border: 1.5px solid var(--border-light);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: var(--surface);
+}
+
+.checkbox-item:hover {
+  border-color: var(--primary-color);
+  background-color: var(--primary-light);
+  transform: translateY(-1px);
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-right: 0.875rem;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+}
+
+.checkbox-item input[type="checkbox"]:checked + span {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.doctor-link-card {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+}
+
+.doctor-link-card h3 {
+  color: white;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.doctor-link-card .text-secondary {
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 500;
+}
+
+.doctor-link-container {
+  display: flex;
+  gap: 0.625rem;
+}
+
+.doctor-link-input {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
+  transition: all 0.25s ease;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+}
+
+.doctor-link-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.doctor-link-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.doctor-link-input::selection {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+  margin-top: 1.75rem;
+}
+
+@media (max-width: 768px) {
+  .checkbox-grid {
+    grid-template-columns: 1fr;
+  }
+}

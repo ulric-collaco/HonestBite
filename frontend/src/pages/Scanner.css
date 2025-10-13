@@ -1,0 +1,166 @@
+.scanner-page {
+  background-color: var(--text-primary);
+  color: white;
+}
+
+.scanner-page .page-header {
+  background: linear-gradient(135deg, #3d4f5f 0%, var(--text-primary) 100%);
+}
+
+.scanner-page .container {
+  background-color: var(--text-primary);
+}
+
+.mode-selector {
+  display: flex;
+  gap: 0.625rem;
+  margin-bottom: 1.5rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  padding: 0.5rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  border: none;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  border-radius: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 48px;
+  font-size: 0.875rem;
+}
+
+.mode-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 8px var(--shadow-md);
+}
+
+.mode-btn:hover:not(.active) {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.camera-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto 1.5rem;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  background-color: #000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px var(--shadow-lg);
+}
+
+.webcam {
+  width: 100%;
+  display: block;
+}
+
+.scan-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.scan-frame {
+  width: 80%;
+  max-width: 300px;
+  height: 150px;
+  border: 2.5px solid var(--success-soft);
+  border-radius: 0.75rem;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    border-color: var(--success-soft);
+  }
+  50% {
+    border-color: #9bc0ad;
+  }
+}
+
+.scan-overlay p {
+  margin-top: 1.25rem;
+  background-color: rgba(0, 0, 0, 0.75);
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  backdrop-filter: blur(4px);
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.manual-form {
+  max-width: 600px;
+  margin: 2rem auto;
+  background-color: rgba(255, 255, 255, 0.08);
+  padding: 2.25rem 2rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.manual-form h3 {
+  font-size: 1.375rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.manual-form .input {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 1.125rem;
+  letter-spacing: 0.08em;
+  text-align: center;
+  font-weight: 500;
+}
+
+.manual-form .input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.manual-form .input:focus {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(139, 157, 195, 0.2);
+}
+
+@media (max-width: 768px) {
+  .mode-selector {
+    gap: 0.25rem;
+  }
+  
+  .mode-btn {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .scan-frame {
+    width: 90%;
+  }
+}

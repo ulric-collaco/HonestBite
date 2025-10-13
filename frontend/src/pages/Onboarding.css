@@ -1,0 +1,157 @@
+.onboarding-page {
+  min-height: 100vh;
+  background: var(--color-primary);
+  color: white;
+  padding: 2rem 1rem;
+}
+
+.onboarding-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.onboarding-header h1 {
+  font-size: var(--font-size-3xl);
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: white;
+}
+
+.onboarding-header p {
+  font-size: var(--font-size-base);
+  opacity: 0.95;
+  font-weight: 500;
+  color: white;
+}
+
+.onboarding-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2.5rem;
+  max-width: 200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.progress-step {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.875rem;
+}
+
+.progress-step.active {
+  background-color: white;
+  color: var(--primary-color);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.progress-line {
+  flex: 1;
+  height: 2px;
+  background-color: rgba(255, 255, 255, 0.25);
+  margin: 0 1rem;
+}
+
+.onboarding-content {
+  max-width: 600px;
+  margin: 0 auto;
+  background-color: var(--card-bg);
+  border-radius: 1.25rem;
+  padding: 2.5rem;
+  color: var(--text-primary);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.onboarding-step h2 {
+  font-size: var(--font-size-xl);
+  margin-bottom: 0.625rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.step-description {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.875rem;
+  margin-bottom: 2rem;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.125rem;
+  border: 1.5px solid var(--border);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 56px;
+  background-color: var(--card-bg);
+}
+
+.checkbox-item:hover {
+  border-color: var(--primary-color);
+  background-color: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px var(--shadow-sm);
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-right: 0.875rem;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.checkbox-item span {
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.checkbox-item input[type="checkbox"]:checked + span {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.btn-large {
+  width: 100%;
+  padding: 1.125rem;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .onboarding-header h1 {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .checkbox-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .onboarding-content {
+    padding: 1.5rem;
+  }
+}
