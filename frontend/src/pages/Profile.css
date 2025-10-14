@@ -130,6 +130,21 @@
   gap: 0.625rem;
 }
 
+.doctor-link-container .btn {
+  background-color: white;
+  color: var(--primary-color);
+  border: none;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.doctor-link-container .btn:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
 .doctor-link-input {
   flex: 1;
   padding: 0.875rem 1rem;
