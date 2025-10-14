@@ -65,7 +65,7 @@ app.use(errorHandler)
 app.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`)
   logger.info(`📝 Environment: ${process.env.NODE_ENV}`)
-  logger.info(`🔗 CORS enabled for: ${process.env.CORS_ORIGIN}`)
+  logger.info(`🔗 CORS enabled for: ${process.env.CORS_ORIGINS}`)
 })
 
 export default app
