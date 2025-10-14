@@ -11,6 +11,7 @@ import userRoutes from './routes/user.js'
 import scanRoutes from './routes/scan.js'
 import productRoutes from './routes/product.js'
 import doctorRoutes from './routes/doctor.js'
+import barcodeRoutes from './routes/barcode.js'
 import { errorHandler } from './middleware/errorHandler.js'
 
 const app = express()
@@ -49,6 +50,7 @@ app.use('/api/user', userRoutes)
 app.use('/api/scan', scanRoutes)
 app.use('/api/product', productRoutes)
 app.use('/api/doctor', doctorRoutes)
+app.use('/api/barcode', barcodeRoutes)
 
 // 404 handler
 app.use('*', (req, res) => {

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { scanProduct } from '../services/api'
+import { scanProduct, decodeBarcodeRemote } from '../services/api'
 import { isValidBarcode, scanBarcodeFromImage } from '../utils/barcode'
 import './Scanner.css'
 
@@ -20,7 +20,26 @@ function Scanner({ userId }) {
 
     try {
       // Decode barcode from the image
-      const decoded = await scanBarcodeFromImage(file)
+      let decoded = null
+      try {
+        decoded = await scanBarcodeFromImage(file)
+      } catch (localErr) {
+        console.warn('Local barcode decode failed, trying remote:', localErr)
+        // Fallback to remote LogMeal decode using base64
+        const toBase64 = (f) => new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = (e) => resolve(e.target.result)
+          reader.onerror = reject
+          reader.readAsDataURL(f)
+        })
+        const base64 = await toBase64(file)
+        try {
+          const remote = await decodeBarcodeRemote(base64)
+          decoded = remote?.barcode || null
+        } catch (remoteErr) {
+          console.error('Remote barcode decode failed:', remoteErr)
+        }
+      }
 
       if (!isValidBarcode(decoded)) {
         throw new Error('Invalid or unsupported barcode detected')

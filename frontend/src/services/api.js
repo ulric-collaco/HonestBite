@@ -84,4 +84,10 @@ export const exportDoctorReport = async (patientId) => {
   return response.data
 }
 
+// Barcode decode via backend (LogMeal)
+export const decodeBarcodeRemote = async (imageBase64) => {
+  const response = await api.post('/api/barcode/decode', { image_base64: imageBase64 })
+  return response.data
+}
+
 export default api
