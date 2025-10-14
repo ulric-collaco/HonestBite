@@ -1,21 +1,22 @@
 .scanner-page {
-  background-color: var(--bg-primary);
+  background-color: var(--color-background);
   min-height: 100vh;
 }
 
 .scanner-page .page-header {
-  background: var(--primary-color);
+  background: linear-gradient(180deg, rgba(0,0,0,0.04), rgba(0,0,0,0));
   padding: 2rem 1.5rem;
   text-align: center;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .scanner-page .page-title {
-  color: white;
+  color: var(--color-text-primary);
   margin-bottom: 0.5rem;
 }
 
 .scanner-page .page-header p {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-secondary);
   font-size: 1rem;
 }
 
@@ -30,10 +31,11 @@
   gap: 1rem;
   max-width: 600px;
   margin: 0 auto 2rem;
-  background-color: white;
+  background-color: var(--color-card-bg);
   padding: 0.5rem;
   border-radius: 1rem;
   box-shadow: 0 2px 8px var(--shadow-sm);
+  border: 1px solid var(--color-border-light);
 }
 
 .mode-toggle-btn {
@@ -45,18 +47,19 @@
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  color: var(--text-secondary);
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  color: var(--color-text-secondary);
 }
 
 .mode-toggle-btn.active {
-  background: var(--primary-color);
-  color: white;
-  box-shadow: 0 2px 8px var(--shadow-md);
+  background: var(--color-primary-light);
+  color: var(--color-text-primary);
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
 
 .mode-toggle-btn:hover:not(.active) {
-  background-color: var(--bg-primary);
+  background-color: var(--color-surface);
+  transform: translateY(-1px);
 }
 
 /* Scan Options Cards */
@@ -69,12 +72,13 @@
 }
 
 .scan-option-card {
-  background-color: white;
+  background-color: var(--color-card-bg);
   padding: 2.5rem 2rem;
   border-radius: 1.25rem;
   text-align: center;
   box-shadow: 0 4px 12px var(--shadow-md);
   transition: transform 0.2s ease;
+  border: 1px solid var(--color-border-light);
 }
 
 .scan-option-card:hover {
@@ -91,12 +95,12 @@
 .scan-option-card h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 0.75rem;
 }
 
 .scan-option-card p {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin-bottom: 1.5rem;
   line-height: 1.5;
 }
@@ -109,23 +113,24 @@
 }
 
 .scan-divider span {
-  background-color: var(--bg-primary);
+  background-color: var(--color-surface);
   padding: 0.5rem 1rem;
   border-radius: 2rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-weight: 600;
-  border: 2px solid var(--border-color);
+  border: 1px solid var(--color-border);
 }
 
 /* Manual Form */
 .manual-form {
   max-width: 600px;
   margin: 0 auto;
-  background-color: white;
+  background-color: var(--color-card-bg);
   padding: 2.5rem 2rem;
   border-radius: 1.25rem;
   text-align: center;
   box-shadow: 0 4px 12px var(--shadow-md);
+  border: 1px solid var(--color-border-light);
 }
 
 .manual-icon {
@@ -137,12 +142,12 @@
 .manual-form h3 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 0.75rem;
 }
 
 .manual-form .text-secondary {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   margin-bottom: 1.5rem;
   line-height: 1.5;
 }
@@ -154,28 +159,29 @@
   text-align: center;
   letter-spacing: 0.1em;
   font-weight: 600;
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--color-border);
   border-radius: 0.75rem;
   margin-bottom: 1.5rem;
   font-family: 'Courier New', monospace;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  background-color: var(--bg-primary);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
 }
 
 .barcode-input:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--color-border);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .manual-tips {
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--color-border);
 }
 
 .manual-tips p {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.9375rem;
   margin: 0.5rem 0;
   line-height: 1.5;
@@ -208,16 +214,16 @@
 .scanner-tips {
   max-width: 600px;
   margin: 3rem auto 0;
-  background-color: var(--bg-secondary);
+  background-color: var(--color-surface);
   padding: 1.75rem;
   border-radius: 1rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border);
 }
 
 .scanner-tips h3 {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   margin-bottom: 1rem;
 }
 
@@ -228,7 +234,7 @@
 }
 
 .scanner-tips li {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   padding: 0.5rem 0;
   font-size: 0.9375rem;
   display: flex;
@@ -247,9 +253,9 @@
 }
 
 .alert-danger {
-  background-color: #fee;
-  color: #c33;
-  border: 1px solid #fcc;
+  background-color: var(--danger-soft);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 /* Responsive Design */

@@ -1,12 +1,13 @@
 .home-page {
-  background-color: var(--background);
+  background-color: var(--color-background);
 }
 
 .home-header {
-  background: var(--color-primary);
-  color: white;
+  background: linear-gradient(180deg, rgba(0,0,0,0.04), rgba(0,0,0,0));
+  color: var(--color-text-primary);
   padding: 2.5rem 1rem;
   text-align: center;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .home-header h1 {
@@ -14,34 +15,34 @@
   margin-bottom: 0.625rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .home-header p {
   font-size: var(--font-size-base);
   opacity: 0.95;
   font-weight: 500;
-  color: white;
+  color: var(--color-text-secondary);
 }
 
 .scan-button-large {
   display: block;
-  background: var(--color-success);
-  color: white;
+  background: var(--color-card-bg);
+  color: var(--color-text-primary);
   border-radius: 1.125rem;
   padding: 2.25rem 2rem;
   text-align: center;
   text-decoration: none;
   margin: 1.5rem 0;
   box-shadow: 0 4px 16px var(--shadow-md);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: none;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+  border: 1px solid var(--color-border);
 }
 
 .scan-button-large:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px var(--shadow-lg);
-  background: var(--color-success-dark);
+  background: var(--color-primary-light);
 }
 
 .scan-button-large:active {
@@ -59,12 +60,12 @@
   margin-bottom: 0.5rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .scan-button-large p {
   font-size: var(--font-size-sm);
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -81,8 +82,8 @@
   padding: 1.25rem 1rem;
   text-align: center;
   box-shadow: 0 1px 3px var(--shadow-sm);
-  border: 1px solid var(--border-light);
-  transition: all 0.25s ease;
+  border: 1px solid var(--color-border-light);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .stat-card:hover {
@@ -93,7 +94,7 @@
 .stat-number {
   font-size: 2rem;
   font-weight: 600;
-  color: var(--primary-color);
+  color: var(--color-text-primary);
   letter-spacing: -0.02em;
 }
 
@@ -121,7 +122,7 @@
   border-radius: 1rem;
   overflow: hidden;
   box-shadow: 0 1px 3px var(--shadow-sm);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--color-border-light);
 }
 
 .scan-item {
@@ -129,12 +130,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 1.125rem 1rem;
-  border-bottom: 1px solid var(--border-light);
-  transition: background-color 0.2s ease;
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .scan-item:hover {
-  background-color: var(--surface);
+  background-color: var(--color-surface);
+  transform: translateY(-1px);
 }
 
 .scan-item:last-child {
@@ -145,12 +147,12 @@
   font-size: 0.9375rem;
   font-weight: 600;
   margin-bottom: 0.25rem;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   letter-spacing: -0.01em;
 }
 
 .text-secondary {
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
   font-size: 0.8125rem;
   font-weight: 500;
 }
@@ -158,10 +160,19 @@
 .score-badge {
   padding: 0.5rem 1rem;
   border-radius: 2rem;
-  color: white;
+  color: var(--color-text-primary);
   font-weight: 600;
   font-size: 0.8125rem;
   letter-spacing: 0.01em;
+  box-shadow: 0 2px 8px var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  background-color: var(--color-primary-light);
+  border: 1px solid var(--color-border);
+}
+
+.scan-item:hover .score-badge {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px var(--shadow-md);
 }
 
 .empty-state {
@@ -169,7 +180,8 @@
   padding: 3rem 1.5rem;
   background-color: var(--card-bg);
   border-radius: 1rem;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--color-border-light);
+  box-shadow: 0 1px 3px var(--shadow-sm);
 }
 
 .empty-icon {
@@ -193,12 +205,17 @@
 .doctor-link-input {
   flex: 1;
   padding: 0.875rem 1rem;
-  border: 1.5px solid var(--border);
+  border: 1.5px solid var(--color-border);
   border-radius: 0.625rem;
   font-size: 0.8125rem;
-  background-color: var(--surface);
-  color: var(--text-primary);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
   font-family: monospace;
+  cursor: pointer;
+}
+
+.doctor-link-input:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 768px) {

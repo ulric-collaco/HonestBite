@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom'
-import { getScoreColor, getScoreLabel } from '../utils/helpers'
+import { getScoreLabel } from '../utils/helpers'
 import './ScanResults.css'
 
 function ScanResults() {
@@ -26,7 +26,7 @@ function ScanResults() {
 
   return (
     <div className="results-page page">
-      <div className="page-header" style={{ backgroundColor: getScoreColor(truth_score) }}>
+      <div className="page-header">
         <div className="score-display">
           <div className="score-number">{truth_score}</div>
           <div className="score-label">{getScoreLabel(truth_score)}</div>

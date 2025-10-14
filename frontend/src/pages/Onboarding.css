@@ -1,7 +1,7 @@
 .onboarding-page {
   min-height: 100vh;
-  background: var(--color-primary);
-  color: white;
+  background: var(--color-background);
+  color: var(--color-text-primary);
   padding: 2rem 1rem;
 }
 
@@ -15,14 +15,14 @@
   margin-bottom: 0.75rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: white;
+  color: var(--color-text-primary);
 }
 
 .onboarding-header p {
   font-size: var(--font-size-base);
   opacity: 0.95;
   font-weight: 500;
-  color: white;
+  color: var(--color-text-secondary);
 }
 
 .onboarding-progress {
@@ -39,7 +39,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.25);
+  background-color: var(--color-primary-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -49,16 +49,17 @@
 }
 
 .progress-step.active {
-  background-color: white;
-  color: var(--primary-color);
+  background-color: var(--color-card-bg);
+  color: var(--color-text-primary);
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px var(--shadow-sm);
+  border: 1px solid var(--color-border);
 }
 
 .progress-line {
   flex: 1;
   height: 2px;
-  background-color: rgba(255, 255, 255, 0.25);
+  background-color: var(--color-border);
   margin: 0 1rem;
 }
 
@@ -69,8 +70,8 @@
   border-radius: 1.25rem;
   padding: 2.5rem;
   color: var(--text-primary);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 40px var(--shadow-sm);
+  border: 1px solid var(--color-border-light);
 }
 
 .onboarding-step h2 {
@@ -109,7 +110,7 @@
 }
 
 .checkbox-item:hover {
-  border-color: var(--primary-color);
+  border-color: var(--color-border);
   background-color: var(--surface);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px var(--shadow-sm);
@@ -120,7 +121,7 @@
   height: 20px;
   margin-right: 0.875rem;
   cursor: pointer;
-  accent-color: var(--primary-color);
+  accent-color: var(--color-text-primary);
   flex-shrink: 0;
 }
 
@@ -132,7 +133,7 @@
 
 .checkbox-item input[type="checkbox"]:checked + span {
   font-weight: 600;
-  color: var(--primary-color);
+  color: var(--color-text-primary);
 }
 
 .btn-large {

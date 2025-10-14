@@ -140,10 +140,12 @@ export const isValidEmail = (email) => {
  * @returns {string} Color code
  */
 export const getScoreColor = (score) => {
-  if (score >= 8) return '#10b981' // Green
-  if (score >= 6) return '#f59e0b' // Yellow/Orange
-  if (score >= 4) return '#f97316' // Orange
-  return '#ef4444' // Red
+  // Monochrome mapping: higher scores use darker neutrals, lower scores lighter neutrals
+  if (score >= 9) return '#111111' // very dark
+  if (score >= 7) return '#2b2b2b'
+  if (score >= 5) return '#4a4a4a'
+  if (score >= 3) return '#6e6e73'
+  return '#a1a1a6' // light gray
 }
 
 /**
@@ -161,4 +163,20 @@ export const getScoreLabel = (score) => {
   if (score >= 3) return 'Poor'
   if (score >= 2) return 'Very Poor'
   return 'Avoid'
+}
+
+/**
+ * Build the public doctor link for the given user/patient id based on current origin
+ * Example (localhost): http://localhost:5173/doctor/<id>
+ * Example (prod): https://honestbite.vercel.app/doctor/<id>
+ */
+export const buildDoctorLink = (userId) => {
+  try {
+    const origin = typeof window !== 'undefined' && window.location ? window.location.origin : ''
+    // Fallback domain if rendered in non-browser contexts
+    const base = origin || 'https://honestbite.vercel.app'
+    return `${base}/doctor/${encodeURIComponent(userId)}`
+  } catch {
+    return `https://honestbite.vercel.app/doctor/${encodeURIComponent(userId)}`
+  }
 }

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getUser, getUserScans } from '../services/api'
-import { formatDateTime, getScoreColor, getScoreLabel, timeAgo } from '../utils/helpers'
+import { formatDateTime, timeAgo, buildDoctorLink } from '../utils/helpers'
 import './Home.css'
 
 function Home({ userId }) {
+  const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [recentScans, setRecentScans] = useState([])
   const [loading, setLoading] = useState(true)
@@ -96,7 +97,6 @@ function Home({ userId }) {
                   </div>
                   <div 
                     className="score-badge"
-                    style={{ backgroundColor: getScoreColor(scan.truth_score) }}
                   >
                     {scan.truth_score}/10
                   </div>
@@ -107,7 +107,7 @@ function Home({ userId }) {
         </div>
 
         {/* Doctor Link */}
-        {user?.doctor_link && (
+        {user && (
           <div className="card">
             <h3>👨‍⚕️ Share with Doctor</h3>
             <p className="text-secondary mb-2">
@@ -116,14 +116,16 @@ function Home({ userId }) {
             <div className="doctor-link-container">
               <input 
                 type="text" 
-                value={user.doctor_link} 
+                value={buildDoctorLink(userId)} 
                 readOnly 
                 className="doctor-link-input"
+                onClick={() => navigate(`/doctor/${userId}`)}
+                title="Open doctor's dashboard"
               />
               <button 
                 className="btn btn-primary"
                 onClick={() => {
-                  navigator.clipboard.writeText(user.doctor_link)
+                  navigator.clipboard.writeText(buildDoctorLink(userId))
                   alert('Link copied to clipboard!')
                 }}
               >

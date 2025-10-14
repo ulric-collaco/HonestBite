@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getUser, updateUser } from '../services/api'
-import { copyToClipboard } from '../utils/helpers'
+import { copyToClipboard, buildDoctorLink } from '../utils/helpers'
 import './Profile.css'
 
 const HEALTH_CONDITIONS = [
@@ -15,6 +15,7 @@ const ALLERGIES = [
 ]
 
 function Profile({ userId }) {
+  const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -92,12 +93,11 @@ function Profile({ userId }) {
   }
 
   const handleCopyDoctorLink = async () => {
-    if (user?.doctor_link) {
-      const success = await copyToClipboard(user.doctor_link)
-      if (success) {
-        setMessage('Doctor link copied to clipboard!')
-        setTimeout(() => setMessage(''), 3000)
-      }
+    const link = buildDoctorLink(userId)
+    const success = await copyToClipboard(link)
+    if (success) {
+      setMessage('Doctor link copied to clipboard!')
+      setTimeout(() => setMessage(''), 3000)
     }
   }
 
@@ -271,7 +271,7 @@ function Profile({ userId }) {
         )}
 
         {/* Doctor Link */}
-        {user?.doctor_link && (
+        {user && (
           <div className="card doctor-link-card">
             <h3>👨‍⚕️ Share with Doctor</h3>
             <p className="text-secondary mb-2">
@@ -280,9 +280,11 @@ function Profile({ userId }) {
             <div className="doctor-link-container">
               <input 
                 type="text" 
-                value={user.doctor_link} 
+                value={buildDoctorLink(userId)} 
                 readOnly 
                 className="doctor-link-input"
+                onClick={() => navigate(`/doctor/${userId}`)}
+                title="Open doctor's dashboard"
               />
               <button 
                 className="btn btn-primary"

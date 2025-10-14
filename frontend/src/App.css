@@ -1,42 +1,41 @@
 :root {
   /* ============================================
-     DESIGN SYSTEM - Professional Clean Palette
-     ============================================ */
-  
-  /* Primary Color Palette */
-  --color-primary: #6C63FF;        /* Soft Indigo - buttons & highlights */
-  --color-secondary: #A5A5FF;      /* Pastel Lavender - secondary elements */
-  --color-accent: #FF7F7F;         /* Soft Coral Red - alerts & badges */
-  --color-background: #F9F9FB;     /* Very Light Gray - page backgrounds */
-  --color-card-bg: #FFFFFF;        /* White - cards */
-  --color-text-primary: #1a1a1a;   /* Near Black - main text (improved contrast) */
-  --color-text-secondary: #4a4a4a; /* Dark Gray - captions & secondary text (improved) */
-  
-  /* Extended Palette for States */
-  --color-primary-hover: #5952d4;
-  --color-primary-light: #e8e7ff;
-  --color-primary-dark: #4a42cc;   /* For better contrast on colored backgrounds */
-  --color-secondary-light: #d9d9ff;
-  --color-accent-light: #ffe5e5;
-  --color-success: #2e7d32;        /* Darker green for better readability */
-  --color-success-light: #e8f5e9;
-  --color-success-dark: #1b5e20;
-  --color-warning: #f57c00;        /* Darker orange for better contrast */
-  --color-warning-light: #fff3e0;
-  --color-warning-dark: #e65100;
-  --color-danger: #d32f2f;         /* Darker red for better readability */
-  --color-danger-light: #ffebee;
-  
+    DESIGN SYSTEM - Monochrome (Apple-like)
+    ============================================ */
+
+  /* Neutral Palette */
+  --color-primary: #111111;         /* Primary ink */
+  --color-secondary: #2b2b2b;       /* Secondary ink */
+  --color-accent: #000000;          /* For emphasis only (rare) */
+  --color-background: #f5f5f7;      /* Subtle warm gray (macOS window bg) */
+  --color-card-bg: #ffffff;         /* Surfaces */
+  --color-text-primary: #111111;    /* Primary text */
+  --color-text-secondary: #6e6e73;  /* Secondary text (SF UI style) */
+
+  /* Extended Neutrals */
+  --color-primary-hover: #1b1b1b;
+  --color-primary-light: #e9e9ec;   /* Light fill */
+  --color-primary-dark: #000000;
+  --color-secondary-light: #ededf0;
+  --color-success: #111111;         /* Success uses neutral outline/fill in mono */
+  --color-success-light: #f4f4f6;
+  --color-success-dark: #000000;
+  --color-warning: #111111;         /* Warnings rely on iconography/text, not color */
+  --color-warning-light: #f4f4f6;
+  --color-warning-dark: #000000;
+  --color-danger: #111111;          /* Danger also monochrome */
+  --color-danger-light: #f4f4f6;
+
   /* Borders & Surfaces */
-  --color-border: #E0E0E0;
-  --color-border-light: #F0F0F0;
-  --color-surface: #FAFAFA;
-  
-  /* Shadows */
-  --shadow-sm: rgba(0, 0, 0, 0.05);
+  --color-border: #d2d2d7;          /* macOS separator */
+  --color-border-light: #e5e5ea;
+  --color-surface: #f8f8fa;
+
+  /* Shadows (very subtle) */
+  --shadow-sm: rgba(0, 0, 0, 0.04);
   --shadow-md: rgba(0, 0, 0, 0.08);
   --shadow-lg: rgba(0, 0, 0, 0.12);
-  
+
   /* Responsive Font Sizes - Base (Mobile First) */
   --font-size-xs: clamp(0.75rem, 2vw, 0.875rem);      /* 12-14px */
   --font-size-sm: clamp(0.875rem, 2.5vw, 1rem);       /* 14-16px */
@@ -60,8 +59,8 @@
   --radius-full: 9999px;
   
   /* Typography */
-  --font-heading: 'Poppins', sans-serif;
-  --font-body: 'Nunito', sans-serif;
+  --font-heading: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-body: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   
   /* Legacy variable aliases for backwards compatibility */
@@ -75,6 +74,17 @@
   --text-secondary: var(--color-text-secondary);
   --border: var(--color-border);
   --border-light: var(--color-border-light);
+
+  /* Aliases used across page CSS (backwards compatibility) */
+  --bg-primary: var(--color-background);
+  --bg-secondary: var(--color-surface);
+  --border-color: var(--color-border);
+  --primary-light: var(--color-primary-light);
+  --danger-soft: #f2f2f4;
+  --warning-soft: #f2f2f4;
+  --success-soft: #f2f2f4;
+  --card-bg: var(--color-card-bg);
+  --text-muted: #8a8a8a;
 }
 
 * {
@@ -94,13 +104,40 @@ body {
   font-size: var(--font-size-base);
 }
 
+/* Dark theme */
+[data-theme="dark"] {
+  --color-background: #0e0e10;
+  --color-card-bg: #121214;
+  --color-surface: #1a1a1c;
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #a1a1a6;
+  --color-border: #2c2c2e;
+  --color-border-light: #3a3a3c;
+  --color-primary: #f5f5f7;
+  --color-primary-hover: #ffffff;
+  --color-primary-light: #2c2c2e;
+  --color-secondary: #e5e5ea;
+  --color-accent: #ffffff;
+  --color-success: #f5f5f7;
+  --color-success-light: #0f0f11;
+  --color-warning: #f5f5f7;
+  --color-warning-light: #111113;
+  --color-danger: #f5f5f7;
+  --color-danger-light: #111113;
+  --danger-soft: #1a1a1c;
+  --warning-soft: #1a1a1c;
+  --success-soft: #1a1a1c;
+  --text-muted: #8e8e93;
+}
+
 /* Typography - Responsive & Readable */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   font-weight: 600;
   color: var(--color-text-primary);
-  line-height: 1.3;
+  line-height: 1.25;
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 h1 {
@@ -222,12 +259,12 @@ p {
   min-height: 48px;
   font-family: var(--font-body);
   text-decoration: none;
-  box-shadow: 0 1px 10px var(--shadow-sm);
+  box-shadow: 0 1px 6px var(--shadow-sm);
 }
 
 .btn-primary {
   background-color: var(--color-primary);
-  color: white;
+  color: #fff;
 }
 
 .btn-primary:hover {
@@ -241,24 +278,13 @@ p {
 }
 
 .btn-secondary {
-  background-color: var(--color-secondary);
-  color: var(--color-primary);
+  background-color: var(--color-card-bg);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
 }
 
 .btn-secondary:hover {
-  background-color: var(--color-secondary-light);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--shadow-md);
-}
-
-.btn-secondary {
-  background-color: var(--success-soft);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-}
-
-.btn-secondary:hover {
-  background-color: #a5c9b4;
+  background-color: var(--color-primary-light);
   box-shadow: 0 2px 8px var(--shadow-md);
   transform: translateY(-1px);
 }
@@ -276,8 +302,8 @@ p {
 
 .btn-outline {
   background-color: transparent;
-  color: var(--color-primary);
-  border: 1.5px solid var(--color-primary);
+  color: var(--color-text-primary);
+  border: 1.5px solid var(--color-border);
 }
 
 .btn-outline:hover {
@@ -374,21 +400,21 @@ p {
 }
 
 .alert-warning {
-  background-color: var(--color-warning-light);
-  color: #8b6914;
-  border-color: var(--color-warning);
+  background-color: var(--warning-soft);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
 }
 
 .alert-danger {
-  background-color: var(--color-danger-light);
-  color: #8b5858;
-  border-color: var(--color-danger);
+  background-color: var(--danger-soft);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
 }
 
 .alert-success {
-  background-color: var(--color-success-light);
-  color: #4a7c5d;
-  border-color: var(--color-success);
+  background-color: var(--success-soft);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
 }
 
 /* Loading spinner - Minimal */
@@ -416,7 +442,7 @@ p {
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: var(--color-background);
+  background-color: color-mix(in oklab, var(--color-background) 80%, transparent);
   border-top: 1px solid var(--color-border-light);
   display: flex;
   justify-content: space-around;
@@ -444,12 +470,12 @@ p {
 
 .nav-item:hover {
   background-color: var(--color-primary-light);
-  color: var(--color-primary);
-  text-decoration: underline;
+  color: var(--color-text-primary);
+  text-decoration: none;
 }
 
 .nav-item.active {
-  color: var(--color-primary);
+  color: var(--color-text-primary);
   background-color: var(--color-primary-light);
   font-weight: 600;
 }
@@ -468,8 +494,8 @@ p {
 
 .page-header {
   padding: 2rem 1rem;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
+  background: linear-gradient(180deg, rgba(0,0,0,0.04), rgba(0,0,0,0));
+  color: var(--color-text-primary);
   margin-bottom: 1.5rem;
   border-bottom: 1px solid var(--border-light);
 }
@@ -493,17 +519,17 @@ p {
   
   .nav {
     position: static;
-    background-color: var(--primary-color);
+    background-color: transparent;
     border-top: none;
-    padding: 1rem;
+    padding: 1rem 0;
   }
   
   .nav-item {
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--color-text-secondary);
   }
   
   .nav-item.active {
-    color: white;
+    color: var(--color-text-primary);
   }
   
   .page {
@@ -562,4 +588,86 @@ p {
 
 .gap-2 {
   gap: 1rem;
+}
+
+/* Header & Footer */
+.app-header {
+  position: sticky;
+  top: 0;
+  backdrop-filter: saturate(180%) blur(12px);
+  background-color: color-mix(in oklab, var(--color-background) 85%, transparent);
+  border-bottom: 1px solid var(--color-border-light);
+  z-index: 1000;
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--color-text-primary);
+}
+.brand-mark {
+  font-size: 1.25rem;
+}
+.brand-name {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.theme-toggle {
+  border: 1px solid var(--color-border);
+  background: var(--color-card-bg);
+  color: var(--color-text-primary);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.theme-toggle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--shadow-sm);
+}
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.app-footer {
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-background);
+}
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  color: var(--color-text-secondary);
+}
+
+/* Focus accessibility */
+a:focus-visible, button:focus-visible, .btn:focus-visible, .nav-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Smooth transitions for theme changes */
+html, body, .app, .card, .nav, .app-header, .app-footer {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }

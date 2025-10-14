@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { getDoctorDashboard, exportDoctorReport } from '../services/api'
-import { formatDateTime, getScoreColor, downloadBlob } from '../utils/helpers'
+import { formatDateTime, downloadBlob } from '../utils/helpers'
 import './DoctorDashboard.css'
 
 function DoctorDashboard() {
@@ -190,7 +190,6 @@ function DoctorDashboard() {
                   </div>
                   <div
                     className="history-score"
-                    style={{ backgroundColor: getScoreColor(scan.truth_score) }}
                   >
                     {scan.truth_score}/10
                   </div>

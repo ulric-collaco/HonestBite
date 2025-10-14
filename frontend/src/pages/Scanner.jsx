@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { scanProduct } from '../services/api'
 import { isValidBarcode } from '../utils/barcode'
 import { extractTextFromImage, parseNutritionInfo } from '../utils/ocr'
@@ -215,18 +215,18 @@ function Scanner({ userId }) {
 
       {/* Bottom Navigation */}
       <nav className="nav">
-        <a href="/home" className="nav-item">
+        <Link to="/home" className="nav-item">
           <span className="nav-icon">🏠</span>
           <span>Home</span>
-        </a>
-        <a href="/scanner" className="nav-item active">
+        </Link>
+        <Link to="/scanner" className="nav-item active">
           <span className="nav-icon">📷</span>
           <span>Scan</span>
-        </a>
-        <a href="/profile" className="nav-item">
+        </Link>
+        <Link to="/profile" className="nav-item">
           <span className="nav-icon">👤</span>
           <span>Profile</span>
-        </a>
+        </Link>
       </nav>
     </div>
   )
