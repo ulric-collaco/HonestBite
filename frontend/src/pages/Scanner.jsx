@@ -1,78 +1,32 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Webcam from 'react-webcam'
 import { scanProduct } from '../services/api'
-import { scanBarcodeFromVideo, isValidBarcode } from '../utils/barcode'
+import { isValidBarcode } from '../utils/barcode'
 import { extractTextFromImage, parseNutritionInfo } from '../utils/ocr'
 import './Scanner.css'
 
 function Scanner({ userId }) {
   const navigate = useNavigate()
-  const webcamRef = useRef(null)
   const fileInputRef = useRef(null)
+  const cameraInputRef = useRef(null)
   
-  const [mode, setMode] = useState('barcode') // 'barcode', 'label', 'manual'
+  const [mode, setMode] = useState('scan') // 'scan' or 'manual'
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState('')
   const [manualBarcode, setManualBarcode] = useState('')
 
-  const handleBarcodeCapture = async () => {
-    if (!webcamRef.current) {
-      setError('Camera not available')
-      return
-    }
-
-    setScanning(true)
-    setError('')
-
-    try {
-      const videoElement = webcamRef.current.video
-      
-      // Scan barcode from video stream
-      const barcode = await scanBarcodeFromVideo(videoElement)
-      
-      if (!isValidBarcode(barcode)) {
-        throw new Error('Invalid barcode format')
-      }
-
-      // Send to backend for product lookup
-      const result = await scanProduct({
-        user_id: userId,
-        barcode: barcode,
-        scan_type: 'barcode'
-      })
-
-      // Navigate to results page
-      navigate('/results', { state: { scanResult: result } })
-      
-    } catch (err) {
-      console.error('Barcode scan error:', err)
-      setError(err.message || 'Failed to scan barcode. Please try again or enter manually.')
-    } finally {
-      setScanning(false)
-    }
-  }
-
-  const handleLabelCapture = async () => {
-    const imageSrc = webcamRef.current?.getScreenshot()
-    
-    if (!imageSrc) {
-      setError('Failed to capture image')
-      return
-    }
-
+  const processImage = async (file) => {
     setScanning(true)
     setError('')
 
     try {
       // Extract text using OCR
-      const text = await extractTextFromImage(imageSrc)
+      const text = await extractTextFromImage(file)
       const nutritionData = parseNutritionInfo(text)
 
       // Send to backend for analysis
       const result = await scanProduct({
         user_id: userId,
-        image_data: imageSrc,
         ocr_text: text,
         nutrition_data: nutritionData,
         scan_type: 'label'
@@ -81,52 +35,23 @@ function Scanner({ userId }) {
       navigate('/results', { state: { scanResult: result } })
       
     } catch (err) {
-      console.error('Label scan error:', err)
-      setError('Failed to read nutrition label. Please try again with better lighting.')
+      console.error('Image processing error:', err)
+      setError('Failed to process image. Please try again with better lighting or a clearer photo.')
     } finally {
       setScanning(false)
     }
   }
 
+  const handleCameraCapture = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    await processImage(file)
+  }
+
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
-
-    setScanning(true)
-    setError('')
-
-    try {
-      if (mode === 'barcode') {
-        const { scanBarcodeFromImage } = await import('../utils/barcode')
-        const barcode = await scanBarcodeFromImage(file)
-        
-        const result = await scanProduct({
-          user_id: userId,
-          barcode: barcode,
-          scan_type: 'barcode'
-        })
-
-        navigate('/results', { state: { scanResult: result } })
-      } else {
-        // OCR for label
-        const text = await extractTextFromImage(file)
-        const nutritionData = parseNutritionInfo(text)
-
-        const result = await scanProduct({
-          user_id: userId,
-          ocr_text: text,
-          nutrition_data: nutritionData,
-          scan_type: 'label'
-        })
-
-        navigate('/results', { state: { scanResult: result } })
-      }
-    } catch (err) {
-      console.error('File upload error:', err)
-      setError('Failed to process image. Please try again.')
-    } finally {
-      setScanning(false)
-    }
+    await processImage(file)
   }
 
   const handleManualSubmit = async (e) => {
@@ -160,29 +85,23 @@ function Scanner({ userId }) {
     <div className="scanner-page page">
       <div className="page-header">
         <h1 className="page-title">Scan Product</h1>
-        <p>Choose a scan method</p>
+        <p>Choose how to scan your product</p>
       </div>
 
       <div className="container">
-        {/* Mode Selection */}
-        <div className="mode-selector">
+        {/* Mode Toggle */}
+        <div className="mode-toggle">
           <button
-            className={`mode-btn ${mode === 'barcode' ? 'active' : ''}`}
-            onClick={() => setMode('barcode')}
+            className={`mode-toggle-btn ${mode === 'scan' ? 'active' : ''}`}
+            onClick={() => setMode('scan')}
           >
-            📊 Barcode
+            📷 Scan Label
           </button>
           <button
-            className={`mode-btn ${mode === 'label' ? 'active' : ''}`}
-            onClick={() => setMode('label')}
-          >
-            🏷️ Label
-          </button>
-          <button
-            className={`mode-btn ${mode === 'manual' ? 'active' : ''}`}
+            className={`mode-toggle-btn ${mode === 'manual' ? 'active' : ''}`}
             onClick={() => setMode('manual')}
           >
-            ⌨️ Manual
+            ⌨️ Enter Barcode
           </button>
         </div>
 
@@ -192,84 +111,90 @@ function Scanner({ userId }) {
           </div>
         )}
 
-        {/* Camera View */}
-        {mode !== 'manual' && (
-          <div className="camera-container">
-            <Webcam
-              ref={webcamRef}
-              audio={false}
-              screenshotFormat="image/jpeg"
-              videoConstraints={{
-                facingMode: 'environment',
-                width: 1280,
-                height: 720
-              }}
-              className="webcam"
+        {mode === 'scan' ? (
+          <>
+            <div className="scan-options">
+              <div className="scan-option-card">
+                <div className="scan-icon-large">📷</div>
+                <h2>Take Photo</h2>
+                <p>Use your camera to capture the product label or barcode</p>
+                <button
+                  className="btn btn-primary btn-large"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={scanning}
+                >
+                  {scanning ? 'Processing...' : 'Open Camera'}
+                </button>
+              </div>
+
+              <div className="scan-divider">
+                <span>OR</span>
+              </div>
+
+              <div className="scan-option-card">
+                <div className="scan-icon-large">📁</div>
+                <h2>Upload Image</h2>
+                <p>Select an existing photo from your gallery</p>
+                <button
+                  className="btn btn-secondary btn-large"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={scanning}
+                >
+                  {scanning ? 'Processing...' : 'Choose File'}
+                </button>
+              </div>
+            </div>
+
+            {/* Hidden file inputs */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              style={{ display: 'none' }}
+              onChange={handleCameraCapture}
             />
             
-            {mode === 'barcode' && (
-              <div className="scan-overlay">
-                <div className="scan-frame"></div>
-                <p>Align barcode within frame</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleFileUpload}
+            />
+
+            {scanning && (
+              <div className="processing-overlay">
+                <div className="spinner"></div>
+                <p>Processing image...</p>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Action Buttons */}
-        {mode === 'barcode' && (
-          <div className="action-buttons">
-            <button
-              className="btn btn-primary btn-large"
-              onClick={handleBarcodeCapture}
-              disabled={scanning}
-            >
-              {scanning ? 'Scanning...' : '📷 Scan Barcode'}
-            </button>
-            
-            <button
-              className="btn btn-secondary btn-large"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={scanning}
-            >
-              📁 Upload Image
-            </button>
-          </div>
-        )}
-
-        {mode === 'label' && (
-          <div className="action-buttons">
-            <button
-              className="btn btn-primary btn-large"
-              onClick={handleLabelCapture}
-              disabled={scanning}
-            >
-              {scanning ? 'Processing...' : '📷 Capture Label'}
-            </button>
-            
-            <button
-              className="btn btn-secondary btn-large"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={scanning}
-            >
-              📁 Upload Image
-            </button>
-          </div>
-        )}
-
-        {mode === 'manual' && (
+            <div className="scanner-tips">
+              <h3>📝 Tips for Best Results</h3>
+              <ul>
+                <li>✓ Ensure good lighting</li>
+                <li>✓ Keep the label flat and in focus</li>
+                <li>✓ Capture the entire nutrition table</li>
+                <li>✓ Avoid shadows and glare</li>
+              </ul>
+            </div>
+          </>
+        ) : (
           <form onSubmit={handleManualSubmit} className="manual-form">
-            <h3>Enter Barcode Manually</h3>
-            <p className="text-secondary">Enter the barcode number from the product</p>
+            <div className="manual-icon">🔢</div>
+            <h3>Enter Barcode Number</h3>
+            <p className="text-secondary">Type or paste the barcode from the product packaging</p>
             
             <input
               type="text"
-              className="input"
-              placeholder="Enter barcode (e.g., 8901030123456)"
+              className="input barcode-input"
+              placeholder="e.g., 8901030123456"
               value={manualBarcode}
               onChange={(e) => setManualBarcode(e.target.value.replace(/\D/g, ''))}
               maxLength={14}
               disabled={scanning}
+              autoFocus
             />
             
             <button
@@ -279,19 +204,13 @@ function Scanner({ userId }) {
             >
               {scanning ? 'Searching...' : '🔍 Look Up Product'}
             </button>
+
+            <div className="manual-tips">
+              <p>💡 Barcodes are usually 8-14 digits long</p>
+              <p>💡 Found under the product barcode lines</p>
+            </div>
           </form>
         )}
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          style={{ display: 'none' }}
-          onChange={handleFileUpload}
-        />
-
-        {scanning && <div className="spinner"></div>}
       </div>
 
       {/* Bottom Navigation */}
