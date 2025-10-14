@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { scanProduct } from '../services/api'
-import { isValidBarcode } from '../utils/barcode'
-import { extractTextFromImage, parseNutritionInfo } from '../utils/ocr'
+import { isValidBarcode, scanBarcodeFromImage } from '../utils/barcode'
 import './Scanner.css'
 
 function Scanner({ userId }) {
@@ -10,7 +9,7 @@ function Scanner({ userId }) {
   const fileInputRef = useRef(null)
   const cameraInputRef = useRef(null)
   
-  const [mode, setMode] = useState('scan') // 'scan' or 'manual'
+  const [mode, setMode] = useState('scan') // 'scan' | 'manual'
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState('')
   const [manualBarcode, setManualBarcode] = useState('')
@@ -20,23 +19,25 @@ function Scanner({ userId }) {
     setError('')
 
     try {
-      // Extract text using OCR
-      const text = await extractTextFromImage(file)
-      const nutritionData = parseNutritionInfo(text)
+      // Decode barcode from the image
+      const decoded = await scanBarcodeFromImage(file)
 
-      // Send to backend for analysis
+      if (!isValidBarcode(decoded)) {
+        throw new Error('Invalid or unsupported barcode detected')
+      }
+
+      // Send to backend for analysis by barcode
       const result = await scanProduct({
         user_id: userId,
-        ocr_text: text,
-        nutrition_data: nutritionData,
-        scan_type: 'label'
+        barcode: decoded,
+        scan_type: 'barcode'
       })
 
       navigate('/results', { state: { scanResult: result } })
       
     } catch (err) {
-      console.error('Image processing error:', err)
-      setError('Failed to process image. Please try again with better lighting or a clearer photo.')
+      console.error('Barcode processing error:', err)
+      setError('No barcode detected. Please retake the photo ensuring the barcode is clear and well-lit.')
     } finally {
       setScanning(false)
     }
@@ -56,7 +57,7 @@ function Scanner({ userId }) {
 
   const handleManualSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!isValidBarcode(manualBarcode)) {
       setError('Please enter a valid barcode (6-14 digits)')
       return
@@ -95,7 +96,7 @@ function Scanner({ userId }) {
             className={`mode-toggle-btn ${mode === 'scan' ? 'active' : ''}`}
             onClick={() => setMode('scan')}
           >
-            📷 Scan Label
+            📷 Scan Barcode
           </button>
           <button
             className={`mode-toggle-btn ${mode === 'manual' ? 'active' : ''}`}
@@ -117,7 +118,7 @@ function Scanner({ userId }) {
               <div className="scan-option-card">
                 <div className="scan-icon-large">📷</div>
                 <h2>Take Photo</h2>
-                <p>Use your camera to capture the product label or barcode</p>
+                <p>Use your camera to capture the product barcode</p>
                 <button
                   className="btn btn-primary btn-large"
                   onClick={() => cameraInputRef.current?.click()}
@@ -134,7 +135,7 @@ function Scanner({ userId }) {
               <div className="scan-option-card">
                 <div className="scan-icon-large">📁</div>
                 <h2>Upload Image</h2>
-                <p>Select an existing photo from your gallery</p>
+                <p>Select a photo where the barcode is visible</p>
                 <button
                   className="btn btn-secondary btn-large"
                   onClick={() => fileInputRef.current?.click()}
@@ -173,10 +174,9 @@ function Scanner({ userId }) {
             <div className="scanner-tips">
               <h3>📝 Tips for Best Results</h3>
               <ul>
-                <li>✓ Ensure good lighting</li>
-                <li>✓ Keep the label flat and in focus</li>
-                <li>✓ Capture the entire nutrition table</li>
-                <li>✓ Avoid shadows and glare</li>
+                <li>✓ Ensure good lighting and avoid glare on the barcode</li>
+                <li>✓ Fill the frame with the barcode and keep it in focus</li>
+                <li>✓ Keep the barcode straight and not curved</li>
               </ul>
             </div>
           </>
@@ -185,7 +185,7 @@ function Scanner({ userId }) {
             <div className="manual-icon">🔢</div>
             <h3>Enter Barcode Number</h3>
             <p className="text-secondary">Type or paste the barcode from the product packaging</p>
-            
+
             <input
               type="text"
               className="input barcode-input"
@@ -196,7 +196,7 @@ function Scanner({ userId }) {
               disabled={scanning}
               autoFocus
             />
-            
+
             <button
               type="submit"
               className="btn btn-primary btn-large"
@@ -211,6 +211,40 @@ function Scanner({ userId }) {
             </div>
           </form>
         )}
+
+        {/* Hidden file inputs */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: 'none' }}
+          onChange={handleCameraCapture}
+        />
+        
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleFileUpload}
+        />
+
+        {scanning && (
+          <div className="processing-overlay">
+            <div className="spinner"></div>
+            <p>Processing image...</p>
+          </div>
+        )}
+
+        <div className="scanner-tips">
+          <h3>📝 Tips for Best Results</h3>
+          <ul>
+            <li>✓ Ensure good lighting and avoid glare on the barcode</li>
+            <li>✓ Fill the frame with the barcode and keep it in focus</li>
+            <li>✓ Keep the barcode straight and not curved</li>
+          </ul>
+        </div>
       </div>
 
       {/* Bottom Navigation */}

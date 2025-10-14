@@ -56,7 +56,7 @@ function Home({ userId }) {
         <Link to="/scanner" className="scan-button-large">
           <div className="scan-icon">📷</div>
           <h2>Scan Product</h2>
-          <p>Tap to scan barcode or label</p>
+          <p>Tap to scan a product barcode</p>
         </Link>
 
         {/* Quick Stats */}
