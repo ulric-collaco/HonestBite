@@ -14,9 +14,12 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`)
+    console.log('Request data:', config.data)
+    console.log('Base URL:', config.baseURL)
     return config
   },
   (error) => {
+    console.error('Request interceptor error:', error)
     return Promise.reject(error)
   }
 )
@@ -87,6 +90,105 @@ export const exportDoctorReport = async (patientId) => {
 // Barcode decode via backend (LogMeal)
 export const decodeBarcodeRemote = async (imageBase64) => {
   const response = await api.post('/api/barcode/decode', { image_base64: imageBase64 })
+  return response.data
+}
+
+// AI Agent APIs
+export const chatWithAgent = async (userId, message, sessionId = null, context = {}) => {
+  const response = await api.post('/api/agent/chat', {
+    user_id: userId,
+    message,
+    session_id: sessionId,
+    context
+  })
+  return response.data
+}
+
+export const analyzeProductWithAI = async (userId, productInfo, specificQuestion = null) => {
+  const response = await api.post('/api/agent/analyze-product', {
+    user_id: userId,
+    product_info: productInfo,
+    specific_question: specificQuestion
+  })
+  return response.data
+}
+
+export const researchUnknownProduct = async (userId, productName, ingredients, ocrText, barcode) => {
+  const response = await api.post('/api/agent/research-unknown', {
+    user_id: userId,
+    product_name: productName,
+    ingredients,
+    ocr_text: ocrText,
+    barcode
+  })
+  return response.data
+}
+
+export const getProductAlternatives = async (userId, barcode) => {
+  const response = await api.get(`/api/agent/suggest-alternatives/${barcode}?user_id=${userId}`)
+  return response.data
+}
+
+export const explainNutritionConcept = async (userId, topic, contextProduct = null, userCondition = null) => {
+  const response = await api.post('/api/agent/explain', {
+    user_id: userId,
+    topic,
+    context_product: contextProduct,
+    user_condition: userCondition
+  })
+  return response.data
+}
+
+export const getAgentStatus = async () => {
+  const response = await api.get('/api/agent/status')
+  return response.data
+}
+
+// Enhanced OCR APIs
+export const processOCRWithAI = async (ocrText, imageBase64 = null, userId = null, context = {}) => {
+  const response = await api.post('/api/ocr/process', {
+    ocr_text: ocrText,
+    image_base64: imageBase64,
+    user_id: userId,
+    context
+  })
+  return response.data
+}
+
+export const extractNutritionFromOCR = async (ocrText) => {
+  const response = await api.post('/api/ocr/extract-nutrition', {
+    ocr_text: ocrText
+  })
+  return response.data
+}
+
+export const extractIngredientsFromOCR = async (ocrText) => {
+  const response = await api.post('/api/ocr/extract-ingredients', {
+    ocr_text: ocrText
+  })
+  return response.data
+}
+
+export const correctOCRText = async (ocrText) => {
+  const response = await api.post('/api/ocr/correct-text', {
+    ocr_text: ocrText
+  })
+  return response.data
+}
+
+export const translateOCRText = async (text, fromLanguage = 'auto') => {
+  const response = await api.post('/api/ocr/translate', {
+    text,
+    from_language: fromLanguage
+  })
+  return response.data
+}
+
+export const combineOCRResults = async (ocrResults, userId = null) => {
+  const response = await api.post('/api/ocr/combine-results', {
+    ocr_results: ocrResults,
+    user_id: userId
+  })
   return response.data
 }
 

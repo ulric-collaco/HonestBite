@@ -126,6 +126,63 @@
   border: 1.5px solid var(--color-border);
 }
 
+/* AI Insights Styles */
+.ai-insights-card {
+  background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%);
+  border: 2px solid #e1f5fe;
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-insights-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+}
+
+.ai-insights-content {
+  padding-top: 0.5rem;
+}
+
+.ai-analysis {
+  line-height: 1.7;
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
+  margin-bottom: 1rem;
+}
+
+.ai-analysis strong {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.ai-analysis em {
+  color: var(--color-secondary);
+  font-style: italic;
+}
+
+.ai-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.confidence-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.375rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
 .buzzword-tags {
   display: flex;
   flex-wrap: wrap;

@@ -2,7 +2,16 @@
 
 ## What is This App?
 
-HonestBite is an AI-powered nutrition transparency platform built for Indian consumers to make informed food choices. It debunks misleading food marketing by scanning product barcodes and labels using OCR technology, cross-referencing against FSSAI standards and nutritional databases. The app generates simple 1-10 truth scores, detects greenwashing buzzwords using NLP, and provides personalized health alerts based on user allergies and chronic conditions like diabetes or hypertension. It integrates with healthcare through doctor dashboards where physicians can monitor patient nutrition patterns, receive automated alerts for risky consumption, and export PDF reports. Focusing on India's food landscape with local FSSAI product data, this platform connects consumers, products, and healthcare providers in a unified nutrition ecosystem.
+HonestBite is an **AI-powered nutrition transparency platform** built for Indian consumers to make informed food choices. It debunks misleading food marketing by scanning product barcodes and labels using OCR technology, cross-referencing against FSSAI standards and nutritional databases. 
+
+### 🤖 **NEW: AI-Enhanced Features**
+- **Intelligent Nutrition Agent** powered by GPT-4 with Indian dietary knowledge
+- **Enhanced OCR** with multi-language support (Hindi, Tamil, Bengali, etc.)
+- **Conversational interface** for personalized nutrition advice
+- **Smart product research** for unknown items using ingredient analysis
+- **Cultural context** with comparisons to traditional Indian foods
+
+The app generates simple 1-10 truth scores, detects greenwashing buzzwords using NLP, and provides personalized health alerts based on user allergies and chronic conditions like diabetes or hypertension. It integrates with healthcare through doctor dashboards where physicians can monitor patient nutrition patterns, receive automated alerts for risky consumption, and export PDF reports. Focusing on India's food landscape with local FSSAI product data, this platform connects consumers, products, and healthcare providers in a unified nutrition ecosystem.
 
 ---
 
@@ -19,7 +28,9 @@ HonestBite is an AI-powered nutrition transparency platform built for Indian con
                               │
                               ▼
                     ┌─────────────────────────┐
-                    │   External APIs         │
+                    │   AI & External APIs    │
+                    │ • GPT-4 Agent (NEW)     │
+                    │ • Enhanced OCR (NEW)    │
                     │ • Hugging Face (NLP)    │
                     │ • Open Food Facts (DB)  │
                     └─────────────────────────┘
@@ -37,12 +48,15 @@ HonestBite is an AI-powered nutrition transparency platform built for Indian con
 **Backend:**
 - Node.js + Express (REST API)
 - PostgreSQL via Supabase (database)
+- **GPT-4 AI Agent** (nutrition analysis & chat)
+- **Enhanced OCR** (multi-language support)
 - Winston (logging)
 - Helmet + CORS (security)
 - Rate limiting (100 req/15min)
 
 **External Services:**
 - Supabase (PostgreSQL hosting)
+- **OpenAI GPT-4** (intelligent nutrition agent)
 - Hugging Face (NLP for greenwashing detection)
 - Open Food Facts (product database)
 
@@ -134,7 +148,10 @@ SUPABASE_ANON_KEY=eyJhbGc...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 DATABASE_URL=postgresql://postgres:[password]@db.xxxxx.supabase.co:5432/postgres
 
-# Hugging Face (OPTIONAL - for greenwashing NLP)
+# AI Configuration (REQUIRED for AI features)
+OPENAI_API_KEY=sk-xxxxx
+
+# Hugging Face (OPTIONAL - for enhanced NLP)
 HUGGING_FACE_API_KEY=hf_xxxxx
 HF_TOKEN=hf_xxxxx
 
@@ -143,7 +160,20 @@ OPEN_FOOD_FACTS_URL=https://world.openfoodfacts.org/api/v0
 CORS_ORIGINS=http://localhost:5173
 ```
 
-### 4. Run the Application
+### 4. Quick Setup (Automated)
+
+**Windows (PowerShell):**
+```powershell
+.\setup-ai.ps1
+```
+
+**Linux/Mac:**
+```bash
+chmod +x setup-ai.sh
+./setup-ai.sh
+```
+
+### 5. Run the Application
 
 ```powershell
 # Start both frontend and backend together
@@ -155,7 +185,7 @@ npm run dev
 - Backend API: http://localhost:3001
 - Health Check: http://localhost:3001/health
 
-### 5. Test with Sample Data
+### 6. Test with Sample Data
 
 **Complete User Flow:**
 1. Open http://localhost:5173
@@ -163,7 +193,17 @@ npm run dev
 3. Go to Scanner page
 4. Enter test barcode: `8901030123456` (Britannia Bread)
 5. View truth score and personalized alerts
-6. Check Profile page for scan history
+6. **Try the AI chat**: Ask questions about the product
+7. Check Profile page for scan history
+8. Copy doctor link and access dashboard: `/doctor/[your-user-id]`
+
+### 7. AI Features Demo
+
+**Try these AI interactions:**
+- **Product Analysis**: "Is this safe for my diabetes?"
+- **Alternatives**: "What are healthier alternatives?"
+- **Nutrition Education**: "Explain why high sodium is bad"
+- **Cultural Context**: "How does this compare to traditional Indian snacks?"
 7. Copy doctor link and access dashboard: `/doctor/[your-user-id]`
 
 ---
@@ -196,4 +236,73 @@ Use these barcodes from seed data for testing:
 2. Access dashboard at: `http://localhost:5173/doctor/[your-user-id]`
 3. View scan history, health alerts, and risk patterns
 4. Export PDF report for patient
+
+---
+
+## 🤖 AI Features
+
+HonestBite now includes powerful AI capabilities that transform the user experience:
+
+### **Intelligent Nutrition Agent**
+- **GPT-4 powered** analysis with Indian dietary knowledge
+- **Personalized recommendations** based on health conditions
+- **Cultural context** with traditional food comparisons
+- **Real-time chat** interface for nutrition queries
+
+### **Enhanced OCR System**
+- **Multi-language support** (Hindi, Tamil, Bengali, Gujarati, Marathi)
+- **AI-powered error correction** for better accuracy
+- **Intelligent data extraction** from product labels
+- **Automatic validation** of nutrition values
+
+### **Smart Features**
+- **Product research** for unknown items using ingredient analysis
+- **Alternative suggestions** from database with reasoning
+- **Conversation memory** for context-aware responses
+- **Confidence scoring** for all AI recommendations
+
+**📖 Detailed Documentation:** See [AI_FEATURES.md](AI_FEATURES.md) for complete API reference and implementation details.
+
+---
+
+## 🚀 API Endpoints
+
+### Core APIs
+- `GET /health` - Health check
+- `POST /api/scan` - Product scanning (now with AI insights)
+- `GET /api/user/:id` - User profile
+- `GET /api/doctor/:id` - Doctor dashboard
+
+### AI APIs (NEW)
+- `POST /api/agent/chat` - Interactive chat with nutrition agent
+- `POST /api/agent/analyze-product` - AI product analysis
+- `POST /api/agent/research-unknown` - Research unknown products
+- `POST /api/ocr/process` - Enhanced OCR with AI
+- `POST /api/ocr/extract-nutrition` - Extract nutrition facts
+- `POST /api/ocr/translate` - Multi-language OCR translation
+
+**🔗 Full API documentation:** Available in [AI_FEATURES.md](AI_FEATURES.md)
+
+---
+
+## 🛠 Technology Stack
+
+### **Backend Technologies**
+- **Node.js + Express** - REST API server
+- **PostgreSQL + Supabase** - Database and hosting
+- **OpenAI GPT-4** - Intelligent nutrition agent
+- **LangChain** - AI workflow orchestration
+- **Winston** - Logging and monitoring
+
+### **Frontend Technologies**
+- **React 18 + Vite** - Modern frontend framework
+- **Tesseract.js** - Client-side OCR
+- **ZXing-JS** - Barcode scanning
+- **Axios** - API communication
+
+### **AI & ML Stack**
+- **OpenAI GPT-4** - Primary language model
+- **Custom Knowledge Base** - Indian nutrition data
+- **Multi-language OCR** - Enhanced text extraction
+- **Tool Calling** - Structured AI interactions
 

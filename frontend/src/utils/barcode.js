@@ -1,4 +1,6 @@
 import { BrowserMultiFormatReader } from '@zxing/browser'
+import { BarcodeFormat, DecodeHintType } from '@zxing/library'
+import { preprocessImage } from './ocr'
 
 /**
  * Scan barcode from image file
@@ -8,6 +10,17 @@ import { BrowserMultiFormatReader } from '@zxing/browser'
 export const scanBarcodeFromImage = async (imageFile) => {
   try {
     const reader = new BrowserMultiFormatReader()
+    const hints = new Map()
+    hints.set(DecodeHintType.TRY_HARDER, true)
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.EAN_8,
+      BarcodeFormat.UPC_A,
+      BarcodeFormat.UPC_E,
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.CODE_39
+    ])
+    reader.hints = hints
     
     // Convert file to data URL
     const imageUrl = await fileToDataURL(imageFile)
@@ -21,7 +34,17 @@ export const scanBarcodeFromImage = async (imageFile) => {
     })
     
     // Decode barcode
-    const result = await reader.decodeFromImageElement(img)
+    let result
+    try {
+      result = await reader.decodeFromImageElement(img)
+    } catch (primaryErr) {
+      // Fallback: preprocess image to enhance contrast and retry
+      const preprocessed = await preprocessImage(imageFile)
+      const img2 = document.createElement('img')
+      img2.src = preprocessed
+      await new Promise((resolve) => { img2.onload = resolve })
+      result = await reader.decodeFromImageElement(img2)
+    }
     
     console.log('Barcode detected:', result.getText())
     return result.getText()
@@ -39,6 +62,17 @@ export const scanBarcodeFromImage = async (imageFile) => {
 export const scanBarcodeFromVideo = (videoElement) => {
   return new Promise((resolve, reject) => {
     const reader = new BrowserMultiFormatReader()
+    const hints = new Map()
+    hints.set(DecodeHintType.TRY_HARDER, true)
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.EAN_8,
+      BarcodeFormat.UPC_A,
+      BarcodeFormat.UPC_E,
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.CODE_39
+    ])
+    reader.hints = hints
     
     const timeout = setTimeout(() => {
       reader.reset()

@@ -210,6 +210,33 @@
   font-weight: 500;
 }
 
+.detected-barcode {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 1rem;
+  padding: 1.5rem 2rem;
+  margin-top: 2rem;
+  backdrop-filter: blur(10px);
+}
+
+.barcode-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  margin: 0 0 0.5rem 0 !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.barcode-value {
+  color: white;
+  font-size: 2rem !important;
+  font-weight: 700;
+  margin: 0 !important;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+}
+
 /* Scanner Tips */
 .scanner-tips {
   max-width: 600px;

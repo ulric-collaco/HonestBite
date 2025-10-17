@@ -13,10 +13,14 @@ function Scanner({ userId }) {
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState('')
   const [manualBarcode, setManualBarcode] = useState('')
+  const [detectedBarcode, setDetectedBarcode] = useState('')
+  const [processingStep, setProcessingStep] = useState('')
 
   const processImage = async (file) => {
     setScanning(true)
     setError('')
+    setDetectedBarcode('')
+    setProcessingStep('Extracting barcode from image...')
 
     try {
       // Decode barcode from the image
@@ -25,6 +29,7 @@ function Scanner({ userId }) {
         decoded = await scanBarcodeFromImage(file)
       } catch (localErr) {
         console.warn('Local barcode decode failed, trying remote:', localErr)
+        setProcessingStep('Trying alternative barcode detection...')
         // Fallback to remote LogMeal decode using base64
         const toBase64 = (f) => new Promise((resolve, reject) => {
           const reader = new FileReader()
@@ -45,6 +50,10 @@ function Scanner({ userId }) {
         throw new Error('Invalid or unsupported barcode detected')
       }
 
+      // Show the detected barcode
+      setDetectedBarcode(decoded)
+      setProcessingStep('Fetching product information...')
+
       // Send to backend for analysis by barcode
       const result = await scanProduct({
         user_id: userId,
@@ -56,7 +65,9 @@ function Scanner({ userId }) {
       
     } catch (err) {
       console.error('Barcode processing error:', err)
-      setError('No barcode detected. Please retake the photo ensuring the barcode is clear and well-lit.')
+      setError(err.message || 'No barcode detected. Please retake the photo ensuring the barcode is clear and well-lit.')
+      setDetectedBarcode('')
+      setProcessingStep('')
     } finally {
       setScanning(false)
     }
@@ -66,16 +77,23 @@ function Scanner({ userId }) {
     const file = event.target.files?.[0]
     if (!file) return
     await processImage(file)
+    // Reset input so same file can be selected again
+    event.target.value = ''
   }
 
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
     await processImage(file)
+    // Reset input so same file can be selected again
+    event.target.value = ''
   }
 
   const handleManualSubmit = async (e) => {
     e.preventDefault()
+
+    console.log('Manual submit - User ID:', userId)
+    console.log('Manual submit - Barcode:', manualBarcode)
 
     if (!isValidBarcode(manualBarcode)) {
       setError('Please enter a valid barcode (6-14 digits)')
@@ -84,18 +102,27 @@ function Scanner({ userId }) {
 
     setScanning(true)
     setError('')
+    setDetectedBarcode(manualBarcode)
+    setProcessingStep('Fetching product information...')
 
     try {
+      console.log('Calling scanProduct API...')
       const result = await scanProduct({
         user_id: userId,
         barcode: manualBarcode,
         scan_type: 'manual'
       })
 
+      console.log('API Response:', result)
       navigate('/results', { state: { scanResult: result } })
     } catch (err) {
-      console.error('Manual scan error:', err)
-      setError('Product not found. Please check the barcode.')
+      console.error('Manual scan error - Full error:', err)
+      console.error('Error response:', err.response)
+      console.error('Error message:', err.message)
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message || 'Product not found. Please check the barcode.'
+      setError(errorMsg)
+      setDetectedBarcode('')
+      setProcessingStep('')
     } finally {
       setScanning(false)
     }
@@ -186,7 +213,13 @@ function Scanner({ userId }) {
             {scanning && (
               <div className="processing-overlay">
                 <div className="spinner"></div>
-                <p>Processing image...</p>
+                <p>{processingStep}</p>
+                {detectedBarcode && (
+                  <div className="detected-barcode">
+                    <p className="barcode-label">Detected Barcode:</p>
+                    <p className="barcode-value">{detectedBarcode}</p>
+                  </div>
+                )}
               </div>
             )}
 

@@ -1,8 +1,9 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { getScoreLabel } from '../utils/helpers'
+import AIChat from '../components/AIChat'
 import './ScanResults.css'
 
-function ScanResults() {
+function ScanResults({ userId }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { scanResult } = location.state || {}
@@ -22,7 +23,7 @@ function ScanResults() {
     )
   }
 
-  const { product_info, truth_score, alerts, risk_factors, data_source, greenwashing_flags } = scanResult
+  const { product_info, truth_score, alerts, risk_factors, data_source, greenwashing_flags, ai_insights, consumption_guidance } = scanResult
 
   return (
     <div className="results-page page">
@@ -115,6 +116,45 @@ function ScanResults() {
           </div>
         )}
 
+        {/* Consumption Guidance */}
+        {consumption_guidance && (
+          <div className="card">
+            <h2>🍽️ When & How to Eat</h2>
+            <div
+              className="ai-analysis"
+              dangerouslySetInnerHTML={{
+                __html: consumption_guidance
+                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                  .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                  .replace(/\n/g, '<br/>')
+              }}
+            />
+          </div>
+        )}
+
+        {/* AI Insights */}
+        {ai_insights && (
+          <div className="card ai-insights-card">
+            <h2>🤖 AI Analysis</h2>
+            <div className="ai-insights-content">
+              <div 
+                className="ai-analysis"
+                dangerouslySetInnerHTML={{ 
+                  __html: ai_insights.analysis
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n/g, '<br/>')
+                }}
+              />
+              <div className="ai-meta">
+                <span className="confidence-badge">
+                  📊 Confidence: {Math.round(ai_insights.confidence * 100)}%
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Greenwashing Flags */}
         {greenwashing_flags && greenwashing_flags.length > 0 && (
           <div className="card greenwashing-card">
@@ -162,6 +202,16 @@ function ScanResults() {
           <span>Profile</span>
         </Link>
       </nav>
+
+      {/* AI Chat Assistant */}
+      <AIChat 
+        userId={userId} 
+        context={{ 
+          productInfo: product_info,
+          scanResult: scanResult 
+        }}
+        placeholder="Ask me about this product..."
+      />
     </div>
   )
 }
