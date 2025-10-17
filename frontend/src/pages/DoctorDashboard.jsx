@@ -75,7 +75,10 @@ function DoctorDashboard() {
   return (
     <div className="doctor-dashboard-page">
       <div className="doctor-header">
-        <h1>👨‍⚕️ Doctor's Dashboard</h1>
+        <h1>
+          <img src="/logo.jpg" alt="HonestBite" className="title-logo" />
+          Doctor's Dashboard
+        </h1>
         <p>Patient Nutrition Monitoring</p>
       </div>
 

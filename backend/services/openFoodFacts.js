@@ -2,6 +2,18 @@ import fetch from 'node-fetch'
 import { logger } from '../utils/logger.js'
 
 const OPEN_FOOD_FACTS_URL = process.env.OPEN_FOOD_FACTS_API_URL || 'https://world.openfoodfacts.org/api/v0'
+const DEFAULT_TIMEOUT_MS = parseInt(process.env.OFF_TIMEOUT_MS || '7000')
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) => {
+  const controller = new AbortController()
+  const to = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal })
+    return res
+  } finally {
+    clearTimeout(to)
+  }
+}
 
 /**
  * Get product data from Open Food Facts
@@ -10,7 +22,7 @@ const OPEN_FOOD_FACTS_URL = process.env.OPEN_FOOD_FACTS_API_URL || 'https://worl
  */
 export const getProductByBarcode = async (barcode) => {
   try {
-    const response = await fetch(`${OPEN_FOOD_FACTS_URL}/product/${barcode}.json`)
+  const response = await fetchWithTimeout(`${OPEN_FOOD_FACTS_URL}/product/${barcode}.json`)
     
     if (!response.ok) {
       throw new Error(`Open Food Facts API error: ${response.status}`)
@@ -60,7 +72,7 @@ export const getProductByBarcode = async (barcode) => {
  */
 export const searchProducts = async (query, page = 1) => {
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${OPEN_FOOD_FACTS_URL}/cgi/search.pl?search_terms=${encodeURIComponent(query)}&page=${page}&page_size=20&json=1`
     )
 

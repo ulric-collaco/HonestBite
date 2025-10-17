@@ -34,15 +34,9 @@ function App() {
   // Theme handling (light/dark) without affecting app logic
   useEffect(() => {
     const saved = localStorage.getItem('hb-theme')
-    if (saved === 'light' || saved === 'dark') {
-      setTheme(saved)
-      document.documentElement.setAttribute('data-theme', saved)
-    } else {
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-      const initial = prefersDark ? 'dark' : 'light'
-      setTheme(initial)
-      document.documentElement.setAttribute('data-theme', initial)
-    }
+    const initial = (saved === 'light' || saved === 'dark') ? saved : 'light'
+    setTheme(initial)
+    document.documentElement.setAttribute('data-theme', initial)
   }, [])
 
   const toggleTheme = () => {
@@ -59,7 +53,7 @@ function App() {
         <header className="app-header" role="banner">
           <div className="container header-inner">
             <Link className="brand" to={isOnboarded ? '/home' : '/'} aria-label="HonestBite Home">
-              <span className="brand-mark" aria-hidden>🥗</span>
+              <img src="/logo.jpg" alt="HonestBite" className="brand-logo" />
               <span className="brand-name">HonestBite</span>
             </Link>
             <div className="header-actions">

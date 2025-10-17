@@ -47,7 +47,10 @@ function Home({ userId }) {
   return (
     <div className="home-page page">
       <div className="home-header">
-        <h1>🥗 HonestBite</h1>
+        <h1>
+          <img src="/logo.jpg" alt="HonestBite" className="title-logo" />
+          HonestBite
+        </h1>
         <p>Scan products to reveal the truth</p>
       </div>
 

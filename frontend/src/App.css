@@ -7,7 +7,7 @@
   --color-primary: #111111;         /* Primary ink */
   --color-secondary: #2b2b2b;       /* Secondary ink */
   --color-accent: #000000;          /* For emphasis only (rare) */
-  --color-background: #f5f5f7;      /* Subtle warm gray (macOS window bg) */
+  --color-background: #FEF8EA;      /* Light mode background per request */
   --color-card-bg: #ffffff;         /* Surfaces */
   --color-text-primary: #111111;    /* Primary text */
   --color-text-secondary: #6e6e73;  /* Secondary text (SF UI style) */
@@ -128,6 +128,18 @@ body {
   --warning-soft: #1a1a1c;
   --success-soft: #1a1a1c;
   --text-muted: #8e8e93;
+}
+
+/* Improve button contrast in dark theme */
+[data-theme="dark"] .btn-primary {
+  background-color: #f5f5f7; /* light button */
+  color: #0e0e10;            /* dark text for contrast */
+}
+[data-theme="dark"] .btn-primary:hover {
+  background-color: #ffffff;
+}
+[data-theme="dark"] .btn-primary:active {
+  background-color: #e6e6e6;
 }
 
 /* Typography - Responsive & Readable */
@@ -612,6 +624,21 @@ p {
   gap: 0.5rem;
   text-decoration: none;
   color: var(--color-text-primary);
+}
+.brand-logo {
+  width: 45px;
+  height: 45px;
+  border-radius: 6px;
+  object-fit: cover;
+  box-shadow: 0 1px 3px var(--shadow-sm);
+}
+.title-logo {
+  width: 90px;
+  height: 90px;
+  border-radius: 6px;
+  object-fit: cover;
+  vertical-align: middle;
+  margin-right: 10px;
 }
 .brand-mark {
   font-size: 1.25rem;

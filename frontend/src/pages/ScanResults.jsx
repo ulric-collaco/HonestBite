@@ -23,7 +23,7 @@ function ScanResults({ userId }) {
     )
   }
 
-  const { product_info, truth_score, alerts, risk_factors, data_source, greenwashing_flags, ai_insights, consumption_guidance } = scanResult
+  const { product_info, truth_score, alerts, risk_factors, data_source, greenwashing_flags, ai_insights } = scanResult
 
   return (
     <div className="results-page page">
@@ -116,21 +116,7 @@ function ScanResults({ userId }) {
           </div>
         )}
 
-        {/* Consumption Guidance */}
-        {consumption_guidance && (
-          <div className="card">
-            <h2>🍽️ When & How to Eat</h2>
-            <div
-              className="ai-analysis"
-              dangerouslySetInnerHTML={{
-                __html: consumption_guidance
-                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                  .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                  .replace(/\n/g, '<br/>')
-              }}
-            />
-          </div>
-        )}
+        {/* Guidance is requested by the assistant itself when opened; no separate section here. */}
 
         {/* AI Insights */}
         {ai_insights && (
@@ -211,6 +197,7 @@ function ScanResults({ userId }) {
           scanResult: scanResult 
         }}
         placeholder="Ask me about this product..."
+        autoGuidanceOnExpand={true}
       />
     </div>
   )

@@ -2,12 +2,13 @@ import { useState, useRef, useEffect } from 'react'
 import { chatWithAgent } from '../services/api'
 import './AIChat.css'
 
-function AIChat({ userId, context = {}, placeholder = "Ask me anything about nutrition..." }) {
+function AIChat({ userId, context = {}, placeholder = "Ask me anything about nutrition...", mode = 'default', autoGuidance = false, autoGuidanceOnExpand = false }) {
   const [messages, setMessages] = useState([])
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState(null)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [guidanceRequested, setGuidanceRequested] = useState(false)
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
@@ -17,6 +18,52 @@ function AIChat({ userId, context = {}, placeholder = "Ask me anything about nut
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Auto-request consumption guidance when in guidance mode
+  useEffect(() => {
+    const shouldAutoRequest = (mode === 'guidance' || autoGuidanceOnExpand) && isExpanded && context?.productInfo && !guidanceRequested && !isLoading
+    if (!shouldAutoRequest) return
+
+    const request = async () => {
+      setGuidanceRequested(true)
+      setIsLoading(true)
+      try {
+        const response = await chatWithAgent(
+          userId,
+          'Give a concise, actionable guide on WHEN to consume and HOW MUCH to eat for this product. Use short headings and bullet points. Avoid unrelated analysis. Reply in English only.',
+          sessionId,
+          { productInfo: context.productInfo, requestType: 'consumption_guidance' }
+        )
+        if (response.session_id) setSessionId(response.session_id)
+        setMessages(prev => ([
+          ...prev,
+          {
+            role: 'assistant',
+            content: response.response,
+            confidence: response.confidence,
+            toolsUsed: response.tools_used,
+            timestamp: response.timestamp
+          }
+        ]))
+      } catch (err) {
+        console.error('Guidance fetch error:', err)
+        setMessages(prev => ([
+          ...prev,
+          {
+            role: 'assistant',
+            content: 'Unable to generate guidance right now. Please try again.',
+            error: true,
+            timestamp: new Date().toISOString()
+          }
+        ]))
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    request()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, autoGuidanceOnExpand, isExpanded, context?.productInfo, guidanceRequested, isLoading])
 
   const sendMessage = async (e) => {
     e.preventDefault()
@@ -79,23 +126,19 @@ function AIChat({ userId, context = {}, placeholder = "Ask me anything about nut
   }
 
   const getQuickQuestions = () => {
-    const baseQuestions = [
-      "Is this product healthy for me?",
-      "What are the main health concerns?",
-      "Can you suggest better alternatives?",
-      "Explain the ingredients in simple terms"
-    ]
-
-    // Add context-specific questions
-    if (context.productInfo) {
+    if (mode === 'guidance') {
       return [
-        ...baseQuestions,
-        "How does this compare to similar products?",
-        "What should I watch out for with this product?"
+        'When should I eat this?',
+        'How much is a safe portion?',
+        'How often can I have it?'
       ]
     }
-
-    return baseQuestions
+    return [
+      'Is this product healthy for me?',
+      'What are the main health concerns?',
+      'Can you suggest better alternatives?',
+      'Explain the ingredients in simple terms'
+    ]
   }
 
   return (
@@ -173,6 +216,7 @@ function AIChat({ userId, context = {}, placeholder = "Ask me anything about nut
             <div ref={messagesEndRef} />
           </div>
 
+          {true && (
           <form onSubmit={sendMessage} className="chat-input-form">
             <div className="input-container">
               <input
@@ -203,6 +247,7 @@ function AIChat({ userId, context = {}, placeholder = "Ask me anything about nut
               </button>
             )}
           </form>
+          )}
         </div>
       )}
     </div>

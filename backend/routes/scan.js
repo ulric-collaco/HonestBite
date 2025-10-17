@@ -5,7 +5,7 @@ import { detectGreenwashing } from '../services/nlpService.js'
 import { calculateTruthScore, generateHealthAlerts, identifyRiskFactors } from '../utils/truthScore.js'
 import { nutritionAgent } from '../services/aiAgent.js'
 import { logger } from '../utils/logger.js'
-import { generateWithGemini } from '../services/gemini.js'
+import { generateWithGeminiSafe } from '../services/gemini.js'
 
 const router = express.Router()
 
@@ -142,7 +142,7 @@ router.post('/', async (req, res, next) => {
     // Get AI agent analysis for enhanced insights
     let aiInsights = null
     try {
-      const aiResult = await nutritionAgent.processQuery(
+      const aiResultPromise = nutritionAgent.processQuery(
         user_id,
         `Please provide detailed analysis and personalized recommendations for this product.`,
         {
@@ -151,37 +151,25 @@ router.post('/', async (req, res, next) => {
           requestType: 'scan_analysis'
         }
       )
+
+      // Enforce max wait for AI insights
+      const aiResult = await Promise.race([
+        aiResultPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('ai_timeout')), 7000))
+      ])
+
       aiInsights = {
         analysis: aiResult.response,
         confidence: aiResult.confidence,
         session_id: aiResult.sessionId
       }
     } catch (aiError) {
-      logger.warn('AI analysis failed:', aiError)
+      logger.warn('AI analysis skipped or timed out:', aiError.message)
       // Continue without AI insights
     }
 
-    // Generate consumption guidance: when and how to eat
-    let consumptionGuidance = null
-    try {
-      const profileSummary = userData ? {
-        health_conditions: userData.health_conditions || [],
-        allergies: userData.allergies || [],
-        dietary_preferences: userData.dietary_preferences || []
-      } : null
-
-      const prompt = `You are HonestBite's Indian nutrition assistant.
-Given this product and user profile, provide a concise, actionable guide on WHEN and HOW to eat it.
-Output with headings: \n- Best Time to Consume \n- Portion Guidance \n- Pairing & How to Eat \n- Allergen/Condition Notes \n- Frequency Advice.
-Keep it practical for Indian households.
-
-PRODUCT: ${JSON.stringify(productData)}
-USER_PROFILE: ${JSON.stringify(profileSummary)}
-`
-      consumptionGuidance = await generateWithGemini(prompt)
-    } catch (gErr) {
-      logger.warn('Consumption guidance generation failed:', gErr)
-    }
+    // Note: Consumption guidance is now generated via the Nutrition Assistant chat UI
+    // to avoid delaying the scan result. The chat component will request it separately.
 
     // Return response
     res.json({
@@ -192,8 +180,7 @@ USER_PROFILE: ${JSON.stringify(profileSummary)}
       risk_factors: riskFactors,
       greenwashing_flags: greenwashingFlags,
       data_source: dataSource,
-      ai_insights: aiInsights,
-      consumption_guidance: consumptionGuidance
+      ai_insights: aiInsights
     })
 
     logger.info(`Scan completed for user ${user_id}: ${productData.name} (Score: ${truthScore})`)

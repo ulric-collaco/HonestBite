@@ -145,51 +145,6 @@ export const getAgentStatus = async () => {
 }
 
 // Enhanced OCR APIs
-export const processOCRWithAI = async (ocrText, imageBase64 = null, userId = null, context = {}) => {
-  const response = await api.post('/api/ocr/process', {
-    ocr_text: ocrText,
-    image_base64: imageBase64,
-    user_id: userId,
-    context
-  })
-  return response.data
-}
-
-export const extractNutritionFromOCR = async (ocrText) => {
-  const response = await api.post('/api/ocr/extract-nutrition', {
-    ocr_text: ocrText
-  })
-  return response.data
-}
-
-export const extractIngredientsFromOCR = async (ocrText) => {
-  const response = await api.post('/api/ocr/extract-ingredients', {
-    ocr_text: ocrText
-  })
-  return response.data
-}
-
-export const correctOCRText = async (ocrText) => {
-  const response = await api.post('/api/ocr/correct-text', {
-    ocr_text: ocrText
-  })
-  return response.data
-}
-
-export const translateOCRText = async (text, fromLanguage = 'auto') => {
-  const response = await api.post('/api/ocr/translate', {
-    text,
-    from_language: fromLanguage
-  })
-  return response.data
-}
-
-export const combineOCRResults = async (ocrResults, userId = null) => {
-  const response = await api.post('/api/ocr/combine-results', {
-    ocr_results: ocrResults,
-    user_id: userId
-  })
-  return response.data
-}
+// OCR endpoints removed from current workflow
 
 export default api

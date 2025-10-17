@@ -89,6 +89,8 @@ function Scanner({ userId }) {
     event.target.value = ''
   }
 
+  // (Label OCR flow removed)
+
   const handleManualSubmit = async (e) => {
     e.preventDefault()
 
@@ -264,7 +266,7 @@ function Scanner({ userId }) {
           </form>
         )}
 
-        {/* Hidden file inputs */}
+        {/* Hidden file inputs (barcode) */}
         <input
           ref={cameraInputRef}
           type="file"

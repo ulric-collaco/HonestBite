@@ -99,7 +99,10 @@ function Onboarding({ onComplete }) {
   return (
     <div className="onboarding-page">
       <div className="onboarding-header">
-        <h1>🥗 HonestBite</h1>
+        <h1>
+          <img src="/logo.jpg" alt="HonestBite" className="title-logo" />
+          HonestBite
+        </h1>
         <p>Let's personalize your experience</p>
       </div>
 

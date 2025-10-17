@@ -4,7 +4,7 @@ import { logger } from '../utils/logger.js'
 import { knowledgeBase } from './knowledgeBase.js'
 import { getProductByBarcode } from './openFoodFacts.js'
 import { supabase } from '../config/database.js'
-import { v4 as uuidv4 } from 'uuid'
+import { randomUUID } from 'node:crypto'
 
 // Gemini will be initialized lazily via generateWithGemini
 
@@ -130,7 +130,7 @@ You have access to tools to research products, analyze nutrition data, and query
    */
   async processQuery(userId, query, context = {}) {
     try {
-      const sessionId = context.sessionId || uuidv4()
+      const sessionId = context.sessionId || randomUUID()
       
       // Build conversation context
       const messages = [

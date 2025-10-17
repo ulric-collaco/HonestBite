@@ -1,10 +1,7 @@
-import { OpenAI } from 'openai'
 import { logger } from '../utils/logger.js'
 import { knowledgeBase } from './knowledgeBase.js'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
+// Note: We use Google Gemini via generateWithGemini; no OpenAI client is needed
 
 /**
  * Enhanced OCR service with AI-powered text extraction and correction
@@ -13,6 +10,26 @@ export class EnhancedOCRService {
   constructor() {
     this.supportedLanguages = ['english', 'hindi', 'tamil', 'bengali', 'gujarati', 'marathi']
     this.nutritionKeywords = this.initializeNutritionKeywords()
+  }
+
+  /**
+   * Safely parse JSON from LLM output that may include extra text or code fences
+   */
+  parseJSONSafe(text) {
+    if (!text) return null
+    // Strip code fences if present
+    let cleaned = text.trim()
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    // If still not valid JSON, try to extract the first JSON object
+    try {
+      return JSON.parse(cleaned)
+    } catch {
+      const match = cleaned.match(/\{[\s\S]*\}/)
+      if (match) {
+        try { return JSON.parse(match[0]) } catch {}
+      }
+      return null
+    }
   }
 
   /**
@@ -52,16 +69,16 @@ export class EnhancedOCRService {
     try {
       logger.info('Processing OCR text with AI enhancement')
 
-      // Step 1: Clean and correct OCR errors
+      // Step 1: Clean and correct OCR errors (local)
       const correctedText = await this.correctOCRErrors(rawOCRText)
 
-      // Step 2: Extract structured nutrition information
+      // Step 2: Extract structured nutrition information (local)
       const nutritionData = await this.extractNutritionInfo(correctedText)
 
-      // Step 3: Extract ingredients list
+      // Step 3: Extract ingredients list (local)
       const ingredients = await this.extractIngredients(correctedText)
 
-      // Step 4: Detect language and translate if needed
+      // Step 4: Detect language and translate if needed (local dictionary)
       const languageInfo = await this.detectAndTranslate(correctedText)
 
       // Step 5: Validate and enhance data
@@ -98,32 +115,39 @@ export class EnhancedOCRService {
    */
   async correctOCRErrors(ocrText) {
     try {
-      const prompt = `You are an OCR error correction specialist for Indian food product labels. 
-      
-Correct the following OCR text from a food label, fixing common errors while preserving the original meaning:
-
-Common OCR errors to fix:
-- "0" instead of "O" (e.g., "Pr0tein" → "Protein")
-- "l" instead of "I" (e.g., "lngrédients" → "Ingredients")
-- "rn" instead of "m" (e.g., "Vitarnin" → "Vitamin")
-- Missing spaces between words
-- Garbled nutrition values
-- Mixed up numbers and letters
-
-OCR Text:
-"${ocrText}"
-
-Return ONLY the corrected text, maintaining the original structure and format:`
-
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
-        max_tokens: 1000
-      })
-
-      return response.choices[0].message.content.trim()
-
+      if (!ocrText || typeof ocrText !== 'string') return ''
+      let text = ocrText
+      // Normalize whitespace
+      text = text.replace(/\u00A0/g, ' ').replace(/[\t ]+/g, ' ')
+      // Fix common ligatures and OCR artifacts
+      text = text
+        .replace(/[‘’‚‛`´]/g, "'")
+        .replace(/[“”„‟]/g, '"')
+        .replace(/ﬁ/g, 'fi')
+        .replace(/ﬂ/g, 'fl')
+        .replace(/–|—/g, '-')
+        .replace(/[·•]/g, '-')
+      // Targeted nutrition term fixes (case-insensitive)
+      const fixes = new Map([
+        [/pr0tein/gi, 'protein'],
+        [/proteln/gi, 'protein'],
+        [/ener0y/gi, 'energy'],
+        [/kca1/gi, 'kcal'],
+        [/carbohydrat[cs]/gi, 'carbohydrates'],
+        [/saturat(?:ed|cd)/gi, 'saturated'],
+        [/ﬁbre/gi, 'fibre'],
+        [/flbre/gi, 'fibre'],
+        [/sugats|sugars?/gi, 'sugar'],
+        [/s0dium/gi, 'sodium']
+      ])
+      fixes.forEach((val, key) => { text = text.replace(key, val) })
+      // Insert missing spaces between letters and numbers (e.g., Protein10g → Protein 10 g)
+      text = text.replace(/([A-Za-z])(?=\d)/g, '$1 ').replace(/(\d)(?=[A-Za-z])/g, '$1 ')
+      // Normalize units spacing
+      text = text.replace(/\s*(mg|g|kcal)\b/gi, ' $1')
+      // Collapse multiple newlines
+      text = text.replace(/\n{3,}/g, '\n\n')
+      return text.trim()
     } catch (error) {
       logger.warn('OCR correction failed, using original text:', error)
       return ocrText
@@ -135,33 +159,46 @@ Return ONLY the corrected text, maintaining the original structure and format:`
    */
   async extractNutritionInfo(text) {
     try {
-      const prompt = `Extract nutrition information from this Indian food product label text.
-      
-Text: "${text}"
+      if (!text) return {}
+      const clean = text.replace(/:,/g, ':').replace(/\s+/g, ' ')
+      const grams = (n) => (typeof n === 'number' ? n : parseFloat(String(n).replace(',', '.')))
 
-Extract the following nutrition values per 100g (if per 100g info is not available, note the serving size):
-- Energy (kcal)
-- Protein (g)
-- Carbohydrates (g)
-- Sugar (g)
-- Fat (g)
-- Saturated Fat (g)
-- Fiber (g)
-- Sodium (g or mg)
+      // Helper to parse numeric with optional unit
+      const parseWithUnit = (pattern) => {
+        const m = clean.match(pattern)
+        if (!m) return null
+        const value = grams(m[2])
+        const unit = (m[3] || '').toLowerCase()
+        if (!isFinite(value)) return null
+        if (unit === 'mg') return value / 1000
+        return value
+      }
 
-Return ONLY a JSON object with the extracted values. Use null for missing values:
-{"energy": 250, "protein": 5.2, "carbohydrates": 60, "sugar": 12, "fat": 8, "saturated_fat": 3, "fiber": 2, "sodium": 0.5, "serving_size": "per 100g"}`
+      // Energy (prefer kcal)
+      let energy = null
+      const energyKcal = clean.match(/(?:energy|calories)\s*[:\-]?\s*([\d.,]+)\s*(kcal|cal)?/i)
+      if (energyKcal) {
+        energy = grams(energyKcal[1])
+      }
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
-        max_tokens: 300
-      })
+      const nutrition = {
+        energy: isFinite(energy) ? Number(energy) : null,
+        protein: parseWithUnit(/(?:protein)[\s:]*([\d.,]+)\s*(mg|g)?/i) ?? null,
+        carbohydrates: parseWithUnit(/(?:carbohydrates?|carbs?)[\s:]*([\d.,]+)\s*(mg|g)?/i) ?? null,
+        sugar: parseWithUnit(/(?:sugars?|sugar)[\s:]*([\d.,]+)\s*(mg|g)?/i) ?? null,
+        fat: parseWithUnit(/(?:total\s+)?fat[\s:]*([\d.,]+)\s*(mg|g)?/i) ?? null,
+        saturated_fat: parseWithUnit(/(?:saturated(?:\s+fat)?)[\s:]*([\d.,]+)\s*(mg|g)?/i) ?? null,
+        fiber: parseWithUnit(/(?:fi[bv]re|fibre|fiber|dietary\s+fiber)[\s:]*([\d.,]+)\s*(mg|g)?/i) ?? null,
+        sodium: parseWithUnit(/(?:sodium|salt)[\s:]*([\d.,]+)\s*(mg|g)?/i) ?? null,
+        serving_size: /per\s*100\s*(g|ml)/i.test(clean) ? 'per 100g' : null
+      }
 
-      const jsonStr = response.choices[0].message.content.trim()
-      return JSON.parse(jsonStr)
-
+      // Fallback merge with regex fallback for any missing keys
+      const fallback = this.fallbackNutritionExtraction(clean)
+      for (const k of Object.keys(fallback)) {
+        if (nutrition[k] == null && fallback[k] != null) nutrition[k] = fallback[k]
+      }
+      return nutrition
     } catch (error) {
       logger.warn('Nutrition extraction failed:', error)
       return this.fallbackNutritionExtraction(text)
@@ -173,25 +210,23 @@ Return ONLY a JSON object with the extracted values. Use null for missing values
    */
   async extractIngredients(text) {
     try {
-      const prompt = `Extract the ingredients list from this Indian food product label text.
-
-Text: "${text}"
-
-Find the ingredients section and return ONLY the ingredients list as a clean, comma-separated string. 
-Remove any parenthetical information about allergens or processing aids.
-If ingredients are in Hindi or other Indian languages, provide both original and English translation.
-
-Example output: "Wheat flour, sugar, vegetable oil, salt, baking powder"`
-
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
-        max_tokens: 400
-      })
-
-      return response.choices[0].message.content.trim()
-
+      if (!text) return ''
+      // Prefer the longest plausible ingredients section
+      const lower = text.toLowerCase()
+      const markers = ['ingredients:', 'contains:', 'composition:', 'सामग्री:', 'घटक:']
+      let best = null
+      for (const marker of markers) {
+        const idx = lower.indexOf(marker)
+        if (idx !== -1) {
+          const after = text.substring(idx + marker.length)
+          // Stop at next section header or max length
+          const stopMatch = after.match(/\b(nutrition|nutritional|per\s*100|allergen|storage|manufactured|address|net\s*wt)\b/i)
+          const end = stopMatch ? stopMatch.index : Math.min(after.length, 300)
+          const candidate = after.substring(0, end).replace(/[()\[\]]/g, ' ').replace(/\s+/g, ' ').trim()
+          if (!best || candidate.length > best.length) best = candidate
+        }
+      }
+      return best || this.fallbackIngredientExtraction(text) || ''
     } catch (error) {
       logger.warn('Ingredient extraction failed:', error)
       return this.fallbackIngredientExtraction(text)
@@ -242,22 +277,46 @@ Example output: "Wheat flour, sugar, vegetable oil, salt, baking powder"`
    */
   async translateNutritionTerms(text, fromLanguage) {
     try {
-      const prompt = `Translate only the nutrition-related terms from ${fromLanguage} to English in this food label text, keeping the rest intact:
-
-"${text}"
-
-Focus on translating: nutrition facts, ingredients, energy, protein, carbohydrates, sugar, fat, fiber, sodium, vitamins, minerals.
-Keep numbers and measurements unchanged.`
-
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
-        max_tokens: 800
-      })
-
-      return response.choices[0].message.content.trim()
-
+      if (!text) return ''
+      let result = text
+      const maps = {
+        hindi: [
+          [/ऊर्जा/gi, 'energy'],
+          [/कैलोरी/gi, 'calories'],
+          [/प्रोटीन/gi, 'protein'],
+          [/कार्बोहाइड्रेट/gi, 'carbohydrates'],
+          [/चीनी|शक्कर/gi, 'sugar'],
+          [/वसा|चर्बी/gi, 'fat'],
+          [/फाइबर|रेशा/gi, 'fiber'],
+          [/सोडियम|नमक/gi, 'sodium'],
+          [/सामग्री|घटक/gi, 'ingredients']
+        ],
+        tamil: [
+          [/ஆற்றல்/gi, 'energy'],
+          [/புரதம்/gi, 'protein'],
+          [/கார்போஹைட்ரேட்டுகள்/gi, 'carbohydrates'],
+          [/சர்க்கரை/gi, 'sugar'],
+          [/கொழுப்பு/gi, 'fat'],
+          [/நார்/gi, 'fiber'],
+          [/சோடியம்/gi, 'sodium'],
+          [/சேர்மங்கள்|பொருட்கள்/gi, 'ingredients']
+        ],
+        bengali: [
+          [/শক্তি/gi, 'energy'],
+          [/প্রোটিন/gi, 'protein'],
+          [/কার্বোহাইড্রেট/gi, 'carbohydrates'],
+          [/চিনি/gi, 'sugar'],
+          [/চর্বি/gi, 'fat'],
+          [/আঁশ/gi, 'fiber'],
+          [/সোডিয়াম|লবণ/gi, 'sodium'],
+          [/উপাদান/gi, 'ingredients']
+        ]
+      }
+      const repl = maps[fromLanguage] || []
+      for (const [pattern, english] of repl) {
+        result = result.replace(pattern, english)
+      }
+      return result
     } catch (error) {
       logger.warn('Translation failed:', error)
       return text

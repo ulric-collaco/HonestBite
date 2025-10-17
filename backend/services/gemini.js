@@ -41,3 +41,25 @@ export const generateWithGemini = async (prompt) => {
     throw new Error('Failed to generate response with Gemini')
   }
 }
+
+/**
+ * Generate with Gemini but enforce a timeout to keep API responses snappy
+ */
+export const generateWithGeminiSafe = async (prompt, timeoutMs = 8000) => {
+  const timeoutPromise = new Promise((_, reject) => {
+    const id = setTimeout(() => {
+      clearTimeout(id)
+      reject(new Error('Gemini timeout'))
+    }, timeoutMs)
+  })
+
+  try {
+    return await Promise.race([
+      generateWithGemini(prompt),
+      timeoutPromise
+    ])
+  } catch (err) {
+    logger.warn(`Gemini safe call failed or timed out (${timeoutMs}ms):`, err.message)
+    throw err
+  }
+}

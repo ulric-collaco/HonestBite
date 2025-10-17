@@ -1,6 +1,5 @@
 import express from 'express'
 import { logger } from '../utils/logger.js'
-import { decodeBarcodeWithLogMeal } from '../services/logmeal.js'
 
 const router = express.Router()
 
@@ -14,19 +13,19 @@ router.post('/decode', async (req, res, next) => {
       return res.status(400).json({ error: 'image_base64 is required' })
     }
 
+    // LogMeal integration removed; we don't perform server-side decoding anymore.
+    // Keep the endpoint to satisfy the frontend contract and return a neutral response quickly.
     const base64 = image_base64.includes(',') ? image_base64.split(',')[1] : image_base64
-    const buffer = Buffer.from(base64, 'base64')
-
-    const barcode = await decodeBarcodeWithLogMeal(buffer)
-
-    if (!barcode) {
-      return res.status(404).json({ error: 'No barcode detected by LogMeal' })
+    if (!base64 || base64.length < 20) {
+      return res.json({ barcode: null, provider: 'none', detected: false })
     }
 
-    res.json({ barcode })
+    // Optionally: future place to plug a local decoder
+    res.json({ barcode: null, provider: 'none', detected: false })
   } catch (error) {
-    logger.error('LogMeal barcode decode failed:', error)
-    next(error)
+    logger.error('Barcode decode endpoint error:', error)
+    // Return graceful failure so client can proceed with local decode fallback
+    res.status(200).json({ barcode: null, provider: 'none', detected: false, error: 'decode_failed' })
   }
 })
 
