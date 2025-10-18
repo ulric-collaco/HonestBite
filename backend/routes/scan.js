@@ -86,9 +86,11 @@ router.post('/', async (req, res, next) => {
     }
 
     if (!productData) {
-      return res.status(404).json({
-        error: 'Product not found',
-        message: 'Product not found in any database. Please try scanning the label or entering product details manually.'
+      const bc = barcode || null
+      return res.json({
+        not_found: true,
+        barcode: bc,
+        message: `Product not found in Open Food Facts or local database. You can try scanning again in better light or enter the barcode manually. (Barcode: ${bc || 'N/A'})`
       })
     }
 

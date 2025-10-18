@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { scanProduct, decodeBarcodeRemote } from '../services/api'
+import { scanProduct, decodeBarcodeRemote, extractBarcodes } from '../services/api'
 import { isValidBarcode, scanBarcodeFromImage } from '../utils/barcode'
 import './Scanner.css'
 
@@ -15,36 +15,55 @@ function Scanner({ userId }) {
   const [manualBarcode, setManualBarcode] = useState('')
   const [detectedBarcode, setDetectedBarcode] = useState('')
   const [processingStep, setProcessingStep] = useState('')
+  
 
   const processImage = async (file) => {
     setScanning(true)
     setError('')
     setDetectedBarcode('')
-    setProcessingStep('Extracting barcode from image...')
+  setProcessingStep('Extracting barcode from image...')
 
     try {
-      // Decode barcode from the image
+      // Server-first: try backend detection+decode
       let decoded = null
       try {
-        decoded = await scanBarcodeFromImage(file)
-      } catch (localErr) {
-        console.warn('Local barcode decode failed, trying remote:', localErr)
-        setProcessingStep('Trying alternative barcode detection...')
-        // Fallback to remote LogMeal decode using base64
-        const toBase64 = (f) => new Promise((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = (e) => resolve(e.target.result)
-          reader.onerror = reject
-          reader.readAsDataURL(f)
-        })
-        const base64 = await toBase64(file)
+        setProcessingStep('Detecting barcode on server...')
+        const serverRes = await extractBarcodes(file)
+        const first = serverRes?.barcodes?.[0]?.text
+        if (first) {
+          decoded = first
+        }
+      } catch (srvErr) {
+        console.warn('Server extract failed, falling back to local decode:', srvErr?.message || srvErr)
+      }
+
+      // Fallback to local decoder if needed
+      if (!decoded) {
         try {
-          const remote = await decodeBarcodeRemote(base64)
-          decoded = remote?.barcode || null
-        } catch (remoteErr) {
-          console.error('Remote barcode decode failed:', remoteErr)
+          setProcessingStep('Trying on-device barcode decoding...')
+          decoded = await scanBarcodeFromImage(file)
+        } catch (localErr) {
+          console.warn('Local barcode decode failed, trying legacy remote:', localErr)
+          setProcessingStep('Trying legacy remote decoder...')
+          // Fallback to legacy remote decode using base64
+          const toBase64 = (f) => new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = (e) => resolve(e.target.result)
+            reader.onerror = reject
+            reader.readAsDataURL(f)
+          })
+          const base64 = await toBase64(file)
+          try {
+            const remote = await decodeBarcodeRemote(base64)
+            decoded = remote?.barcode || null
+          } catch (remoteErr) {
+            console.error('Legacy remote barcode decode failed:', remoteErr)
+          }
         }
       }
+
+      // Sanitize: keep only digits (some decoders may include stray symbols)
+      decoded = (decoded || '').toString().replace(/\D/g, '')
 
       if (!isValidBarcode(decoded)) {
         throw new Error('Invalid or unsupported barcode detected')
@@ -60,12 +79,24 @@ function Scanner({ userId }) {
         barcode: decoded,
         scan_type: 'barcode'
       })
+      if (result?.not_found) {
+        const bc = result.barcode || decoded
+        setError(`${result.message || 'Product not found. You can try again or enter the barcode manually.'} (Barcode: ${bc || 'N/A'})`)
+        setProcessingStep('')
+        setScanning(false)
+        return
+      }
 
       navigate('/results', { state: { scanResult: result } })
       
     } catch (err) {
       console.error('Barcode processing error:', err)
-      setError(err.message || 'No barcode detected. Please retake the photo ensuring the barcode is clear and well-lit.')
+      const serverMsg = err?.response?.data?.message || err?.response?.data?.error
+      if (err?.response?.status === 404 && serverMsg) {
+        setError(serverMsg)
+      } else {
+        setError(err.message || 'No barcode detected. Please retake the photo ensuring the barcode is clear and well-lit.')
+      }
       setDetectedBarcode('')
       setProcessingStep('')
     } finally {
@@ -88,6 +119,8 @@ function Scanner({ userId }) {
     // Reset input so same file can be selected again
     event.target.value = ''
   }
+
+  // (Manual crop removed)
 
   // (Label OCR flow removed)
 
@@ -114,6 +147,13 @@ function Scanner({ userId }) {
         barcode: manualBarcode,
         scan_type: 'manual'
       })
+      if (result?.not_found) {
+        const bc = result.barcode || manualBarcode
+        setError(`${result.message || 'Product not found. Please double-check the barcode or try again later.'} (Barcode: ${bc || 'N/A'})`)
+        setProcessingStep('')
+        setScanning(false)
+        return
+      }
 
       console.log('API Response:', result)
       navigate('/results', { state: { scanResult: result } })
@@ -153,6 +193,10 @@ function Scanner({ userId }) {
             ⌨️ Enter Barcode
           </button>
         </div>
+
+        
+
+
 
         {error && (
           <div className="alert alert-danger">
@@ -266,24 +310,7 @@ function Scanner({ userId }) {
           </form>
         )}
 
-        {/* Hidden file inputs (barcode) */}
-        <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          style={{ display: 'none' }}
-          onChange={handleCameraCapture}
-        />
         
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onChange={handleFileUpload}
-        />
-
         {scanning && (
           <div className="processing-overlay">
             <div className="spinner"></div>
@@ -300,6 +327,8 @@ function Scanner({ userId }) {
           </ul>
         </div>
       </div>
+
+      
 
       {/* Bottom Navigation */}
       <nav className="nav">

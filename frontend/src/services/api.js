@@ -93,6 +93,18 @@ export const decodeBarcodeRemote = async (imageBase64) => {
   return response.data
 }
 
+// Extract barcodes using server-side detector + ZXing
+export const extractBarcodes = async (file) => {
+  const form = new FormData()
+  form.append('image', file)
+  // Use axios directly to set correct headers for multipart
+  const response = await api.post('/api/barcode/extract', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000
+  })
+  return response.data
+}
+
 // AI Agent APIs
 export const chatWithAgent = async (userId, message, sessionId = null, context = {}) => {
   const response = await api.post('/api/agent/chat', {

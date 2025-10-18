@@ -9,15 +9,16 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "tesseract.js": "^4.1.4",
+    "@vitejs/plugin-react": "^4.2.1",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
     "axios": "^1.6.0",
+    "quagga": "^0.12.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.0",
     "react-webcam": "^7.2.0",
-    "@vitejs/plugin-react": "^4.2.1",
+    "tesseract.js": "^4.1.4",
     "vite": "^5.0.8"
   },
   "devDependencies": {
