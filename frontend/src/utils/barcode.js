@@ -1,8 +1,6 @@
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { BarcodeFormat, DecodeHintType } from '@zxing/library'
-import { preprocessImage } from './ocr'
 import Quagga from 'quagga'
-import Tesseract from 'tesseract.js'
 
 /**
  * Scan barcode from image file
@@ -80,15 +78,7 @@ export const scanBarcodeFromImage = async (imageFile, options = {}) => {
       pushVariants(contrast, `contrast-${s}`)
     }
 
-    // OCR-oriented preprocess (costly): only do the largest size once
-    try {
-      const preprocessedUrl = await preprocessImage(imageFile)
-      const preImg = await dataUrlToImage(preprocessedUrl)
-      const ocrCanvas = drawScaled(preImg, 1600)
-      pushVariants(ocrCanvas, 'ocr-1600')
-    } catch (_) {
-      // ignore preprocess failures
-    }
+    // Removed OCR-oriented preprocess to keep client lean
 
     // Try decode across all attempts
     let lastError = null
@@ -142,21 +132,7 @@ export const scanBarcodeFromImage = async (imageFile, options = {}) => {
       }
     }
 
-    // 3) OCR digits fallback on ROIs then full image (last resort)
-    for (const roi of roiCanvases) {
-      const digits = await ocrDigitsFromCanvas(roi)
-      const candidate = findValidBarcodeInString(digits)
-      if (candidate) {
-        console.log('Barcode detected via OCR(ROI):', candidate)
-        return candidate
-      }
-    }
-    const digitsFull = await ocrDigitsFromFile(imageFile)
-    const candidateFull = findValidBarcodeInString(digitsFull)
-    if (candidateFull) {
-      console.log('Barcode detected via OCR(Full):', candidateFull)
-      return candidateFull
-    }
+    // OCR fallback removed
 
     // If everything failed
     throw lastError || new Error('No barcode detected in image')
@@ -227,10 +203,7 @@ export const scanBarcodeFromCanvas = async (canvas, options = {}) => {
     } catch {}
   }
 
-  // OCR fallback
-  const digits = await ocrDigitsFromCanvas(canvas)
-  const candidate = findValidBarcodeInString(digits)
-  if (candidate) return candidate
+  // OCR fallback removed
 
   throw new Error('No barcode detected in ROI')
 }
@@ -354,7 +327,7 @@ const detectRoiCanvases = async (img) => {
 }
 
 // =====================
-// Validation & OCR Utils
+// Validation Utils
 // =====================
 
 const findValidBarcodeInString = (digits) => {
@@ -416,32 +389,7 @@ const isValidEAN8 = (code) => {
   return calc === check
 }
 
-const ocrDigitsFromCanvas = async (canvas) => {
-  try {
-    const res = await Tesseract.recognize(canvas.toDataURL('image/png'), 'eng', {
-      tessedit_char_whitelist: '0123456789',
-      preserve_interword_spaces: 0,
-      classify_bln_numeric_mode: 1
-    })
-    return (res?.data?.text || '').replace(/\D/g, '')
-  } catch {
-    return ''
-  }
-}
-
-const ocrDigitsFromFile = async (file) => {
-  try {
-    const dataUrl = await fileToDataURL(file)
-    const res = await Tesseract.recognize(dataUrl, 'eng', {
-      tessedit_char_whitelist: '0123456789',
-      preserve_interword_spaces: 0,
-      classify_bln_numeric_mode: 1
-    })
-    return (res?.data?.text || '').replace(/\D/g, '')
-  } catch {
-    return ''
-  }
-}
+// OCR helpers removed
 
 /**
  * Scan barcode from video stream

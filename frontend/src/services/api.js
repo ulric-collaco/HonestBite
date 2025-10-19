@@ -87,11 +87,7 @@ export const exportDoctorReport = async (patientId) => {
   return response.data
 }
 
-// Barcode decode via backend (LogMeal)
-export const decodeBarcodeRemote = async (imageBase64) => {
-  const response = await api.post('/api/barcode/decode', { image_base64: imageBase64 })
-  return response.data
-}
+// Legacy remote decode removed; server-first /extract is used instead
 
 // Extract barcodes using server-side detector + ZXing
 export const extractBarcodes = async (file) => {

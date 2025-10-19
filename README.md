@@ -1,4 +1,4 @@
-# 🥗 HonestBite
+imple# 🥗 HonestBite
 
 An AI-powered nutrition transparency app that scans product barcodes, fetches trusted data, and explains it in plain language for Indian consumers. You get an instant rating, safety flags (e.g., sugar/sodium), and a chatty nutrition assistant.
 

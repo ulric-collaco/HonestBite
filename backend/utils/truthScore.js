@@ -7,38 +7,116 @@ import { logger } from '../utils/logger.js'
  * @returns {number} Truth score (1-10)
  */
 export const calculateTruthScore = (product, nutritionFacts) => {
-  let score = 10 // Start with perfect score
+  // Improved truth score using continuous penalties/bonuses and category weights
 
-  // Sugar content scoring (per 100g)
-  const sugar = nutritionFacts?.sugar || 0
-  if (sugar > 22.5) score -= 3       // High sugar (>22.5g)
-  else if (sugar > 15) score -= 2    // Medium-high sugar (15-22.5g)
-  else if (sugar > 5) score -= 1     // Medium sugar (5-15g)
+  const clamp = (x, min, max) => Math.min(max, Math.max(min, x))
+  const smooth01 = (x, low, high) => {
+    if (x == null || Number.isNaN(x)) return 0
+    if (high === low) return x > high ? 1 : 0
+    return clamp((x - low) / (high - low), 0, 1)
+  }
 
-  // Sodium content scoring (per 100g, in grams)
-  const sodium = nutritionFacts?.sodium || 0
-  if (sodium > 1.5) score -= 3        // High sodium (>1500mg)
-  else if (sodium > 0.6) score -= 2   // Medium-high sodium (600-1500mg)
-  else if (sodium > 0.3) score -= 1   // Medium sodium (300-600mg)
+  const mgToG = v => (v != null ? v / 1000 : null)
+  const kjFromKcal = v => (v != null ? v * 4.184 : null)
 
-  // Saturated fat scoring (per 100g)
-  const saturatedFat = nutritionFacts?.saturated_fat || 0
-  if (saturatedFat > 5) score -= 2    // High saturated fat (>5g)
-  else if (saturatedFat > 1.5) score -= 1  // Medium saturated fat (1.5-5g)
+  // Tries common keys and normalizes to per-100g/100ml
+  function normalizeNutrition(n) {
+    if (!n) n = {}
+    const pick = (...keys) => {
+      for (const k of keys) if (n[k] != null) return Number(n[k])
+      return null
+    }
 
-  // Artificial additives scoring
-  const additives = product?.additives || []
-  if (additives.length > 5) score -= 2
-  else if (additives.length > 2) score -= 1
+    // Per-100 normalization best-effort (assumes values already per 100 when typical fields exist)
+    const sugars_g = pick('sugars_100g', 'sugar_100g', 'sugars', 'sugar', 'total_sugars_g_per_100g')
+    let sodium_g = pick('sodium_100g', 'sodium', 'sodium_g_per_100g')
+    const sodium_mg = pick('sodium_mg', 'sodium_mg_per_100g')
+    if (sodium_g == null && sodium_mg != null) sodium_g = mgToG(sodium_mg)
 
-  // Fiber bonus (positive score)
-  const fiber = nutritionFacts?.fiber || 0
-  if (fiber > 6) score += 1           // High fiber bonus
+    const satFat_g = pick('saturated_fat_100g', 'saturated-fat_100g', 'saturatedFat_100g', 'saturated_fat', 'sat_fat_g_per_100g')
+    const transFat_g = pick('trans_fat_100g', 'trans-fat_100g', 'trans_fat', 'trans_fat_g_per_100g')
+    const fiber_g = pick('fiber_100g', 'fiber', 'dietary_fiber_g_per_100g')
+    const protein_g = pick('proteins_100g', 'protein_100g', 'protein', 'protein_g_per_100g')
+    const energy_kcal = pick('energy-kcal_100g', 'energy_kcal_100g', 'energy-kcal', 'energy_kcal')
 
-  // Ensure score is between 1 and 10
-  score = Math.max(1, Math.min(10, score))
+    return {
+      sugars_g, sodium_g, satFat_g, transFat_g, fiber_g, protein_g, energy_kcal
+    }
+  }
 
-  return Math.round(score)
+  function categoryWeights(category = 'general') {
+    const c = (category || 'general').toLowerCase()
+    // Heavier sugar weighting for beverages; higher sodium for savory snacks
+    if (c.includes('beverage') || c.includes('drink') || c.includes('juice') || c.includes('soda')) {
+      return { sugar: 1.6, sodium: 1.0, satFat: 1.0, transFat: 1.4, energy: 1.2, fiber: 1.2, protein: 0.8 }
+    }
+    if (c.includes('snack') || c.includes('chips') || c.includes('namkeen') || c.includes('noodles')) {
+      return { sugar: 1.2, sodium: 1.6, satFat: 1.3, transFat: 1.6, energy: 1.2, fiber: 1.0, protein: 1.0 }
+    }
+    if (c.includes('dessert') || c.includes('chocolate') || c.includes('sweet')) {
+      return { sugar: 1.6, sodium: 0.8, satFat: 1.4, transFat: 1.6, energy: 1.3, fiber: 1.0, protein: 0.8 }
+    }
+    return { sugar: 1.3, sodium: 1.3, satFat: 1.2, transFat: 1.6, energy: 1.0, fiber: 1.0, protein: 1.0 }
+  }
+
+  // Additive/NOVA/sweetener heuristics
+  function productPenalties(product = {}) {
+    const additives = Array.isArray(product.additives) ? product.additives.length : (product.additives_count || 0) || 0
+    const hasSweetener = (product.ingredients_text || '').toLowerCase().match(/sucralose|acesulfame|aspartame|saccharin|stevia|acesulfame\s*k|acesulfame-k|neotame|advantame|cyclamate/)
+    const nova = product.nova_group || product.nova_group_100g || null
+
+    const pAdditives = 2.0 * smooth01(additives, 0, 6) // 0..2
+    const pSweeteners = hasSweetener ? 1.0 : 0
+    const pNOVA = nova >= 4 ? 2.0 : 0 // ultra-processed
+    return pAdditives + pSweeteners + pNOVA
+  }
+
+  // Data completeness reduces score uncertainty/over-optimism
+  function completenessFactor(norm) {
+    const keys = ['sugars_g','sodium_g','satFat_g','transFat_g','fiber_g','protein_g','energy_kcal']
+    const present = keys.filter(k => norm[k] != null).length
+    // 0.7 base + up to +0.3 with complete data
+    return 0.7 + 0.3 * (present / keys.length)
+  }
+
+  const norm = normalizeNutrition(nutritionFacts || {})
+  const w = categoryWeights((product.category || product.categories_tags?.[0] || '').toString())
+
+  // Continuous penalties (scaled 0..1 via smooth01, then weighted)
+  // Thresholds from public guidance (WHO/UK/FSSAI high-in), tuned:
+  const sugarP = 4.0 * w.sugar   * smooth01(norm.sugars_g, 5, 25)     // hits max near 25g/100g
+  const sodiumP = 4.0 * w.sodium * smooth01(norm.sodium_g, 0.3, 1.5)  // 300mg..1500mg/100g
+  const satFatP = 3.0 * w.satFat * smooth01(norm.satFat_g, 1.5, 10)
+  const transFatP = 3.0 * w.transFat * smooth01(norm.transFat_g, 0.1, 2) // strong penalty even at low
+  const energyKcal = norm.energy_kcal != null ? norm.energy_kcal : null
+  const energyP = 2.0 * w.energy * smooth01(energyKcal, 150, 450) // energy density
+
+  const productP = productPenalties(product)
+
+  // Bonuses
+  const fiberB = 3.0 * w.fiber   * smooth01(norm.fiber_g, 3, 8)   // reward high fiber
+  const proteinB = 2.0 * w.protein * smooth01(norm.protein_g, 5, 12)
+
+  // Aggregate
+  let raw = 10
+  const totalPenalty = sugarP + sodiumP + satFatP + transFatP + energyP + productP
+  const totalBonus = fiberB + proteinB
+  raw = raw - totalPenalty + totalBonus
+
+  // Completeness damping
+  const c = completenessFactor(norm)
+  raw = 1 + (raw - 1) * c
+
+  const score = Math.round(clamp(raw, 1, 10))
+
+  return {
+    score,
+    breakdown: {
+      sugarP, sodiumP, satFatP, transFatP, energyP, productP, fiberB, proteinB,
+      completeness: c,
+      inputs: { ...norm, category: product.category || null }
+    }
+  }
 }
 
 /**

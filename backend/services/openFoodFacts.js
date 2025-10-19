@@ -43,6 +43,7 @@ export const getProductByBarcode = async (barcode) => {
       category: product.categories || 'Unknown Category',
       barcode: barcode,
       ingredients: product.ingredients_text || product.ingredients_text_en || '',
+      nova_group: product.nova_group || product.nova_groups || null,
       nutrition_facts: {
         energy: product.nutriments?.['energy-kcal_100g'] || product.nutriments?.energy_100g || 0,
         protein: product.nutriments?.proteins_100g || 0,

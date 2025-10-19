@@ -11,6 +11,7 @@ const router = express.Router()
 
 router.post('/', async (req, res, next) => {
   try {
+    const t0 = Date.now()
     const { user_id, barcode, scan_type, ocr_text, nutrition_data } = req.body
 
     if (!user_id) {
@@ -21,10 +22,13 @@ router.post('/', async (req, res, next) => {
     let dataSource = 'unknown'
 
     // Get product data
+    let tOFF = 0, tDB = 0, tScore = 0, tAlerts = 0, tGreen = 0, tAI = 0
     if (barcode) {
       // Try Open Food Facts first
       try {
+        const t = Date.now()
         productData = await getProductByBarcode(barcode)
+        tOFF = Date.now() - t
         if (productData) {
           dataSource = 'Open Food Facts'
         }
@@ -41,6 +45,7 @@ router.post('/', async (req, res, next) => {
           .single()
 
         if (data && !error) {
+          const t = Date.now()
           productData = {
             name: data.name,
             brand: data.brand,
@@ -51,6 +56,7 @@ router.post('/', async (req, res, next) => {
             data_source: 'FSSAI Manual Database'
           }
           dataSource = 'FSSAI Manual Database'
+          tDB = Date.now() - t
         }
       }
 
@@ -105,21 +111,29 @@ router.post('/', async (req, res, next) => {
       logger.warn('User not found, proceeding without profile:', user_id)
     }
 
-    // Calculate truth score
-    const truthScore = calculateTruthScore(productData, productData.nutrition_facts)
+  // Calculate truth score (handle both legacy numeric and new object-with-breakdown forms)
+  const tScoreStart = Date.now()
+  const scoreResult = calculateTruthScore(productData, productData.nutrition_facts)
+  const truthScore = typeof scoreResult === 'number' ? scoreResult : (scoreResult?.score ?? null)
+  const truthScoreBreakdown = typeof scoreResult === 'object' ? (scoreResult.breakdown ? scoreResult.breakdown : scoreResult) : null
+  tScore = Date.now() - tScoreStart
 
     // Generate health alerts
+    const tAlertsStart = Date.now()
     const alerts = userData
       ? generateHealthAlerts(userData, productData, productData.nutrition_facts)
       : []
+    tAlerts = Date.now() - tAlertsStart
 
     // Identify risk factors
-    const riskFactors = identifyRiskFactors(productData, productData.nutrition_facts)
+  const riskFactors = identifyRiskFactors(productData, productData.nutrition_facts)
 
     // Detect greenwashing
+    const tGreenStart = Date.now()
     const greenwashingFlags = await detectGreenwashing(
       `${productData.name} ${productData.brand} ${productData.ingredients}`
     )
+    tGreen = Date.now() - tGreenStart
 
     // Save scan record
     const { data: scanData, error: scanError } = await supabase
@@ -129,7 +143,7 @@ router.post('/', async (req, res, next) => {
           user_id,
           product_name: productData.name,
           barcode: productData.barcode,
-          truth_score: truthScore,
+          truth_score: truthScore ?? 0,
           risk_factors: riskFactors,
           scan_type: scan_type || 'barcode'
         }
@@ -155,10 +169,12 @@ router.post('/', async (req, res, next) => {
       )
 
       // Enforce max wait for AI insights
+      const tAIStart = Date.now()
       const aiResult = await Promise.race([
         aiResultPromise,
         new Promise((_, reject) => setTimeout(() => reject(new Error('ai_timeout')), 7000))
       ])
+      tAI = Date.now() - tAIStart
 
       aiInsights = {
         analysis: aiResult.response,
@@ -177,7 +193,8 @@ router.post('/', async (req, res, next) => {
     res.json({
       scan_id: scanData?.id,
       product_info: productData,
-      truth_score: truthScore,
+      truth_score: truthScore ?? 0,
+      truth_score_breakdown: truthScoreBreakdown || null,
       alerts,
       risk_factors: riskFactors,
       greenwashing_flags: greenwashingFlags,
@@ -185,7 +202,8 @@ router.post('/', async (req, res, next) => {
       ai_insights: aiInsights
     })
 
-    logger.info(`Scan completed for user ${user_id}: ${productData.name} (Score: ${truthScore})`)
+  const totalMs = Date.now() - t0
+  logger.info(`scan: user=${user_id} name="${productData.name}" score=${truthScore ?? 'n/a'} t_total=${totalMs}ms t_off=${tOFF}ms t_db=${tDB}ms t_score=${tScore}ms t_alerts=${tAlerts}ms t_green=${tGreen}ms t_ai=${tAI}ms`)
   } catch (error) {
     next(error)
   }

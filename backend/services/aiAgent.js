@@ -6,12 +6,7 @@ import { getProductByBarcode } from './openFoodFacts.js'
 import { supabase } from '../config/database.js'
 import { randomUUID } from 'node:crypto'
 
-// Gemini will be initialized lazily via generateWithGemini
 
-/**
- * Core AI Agent class for HonestBite
- * Handles intelligent nutrition analysis, product research, and user interactions
- */
 export class NutritionAgent {
   constructor() {
     this.memory = new Map() // Simple in-memory storage for conversation context
@@ -65,7 +60,8 @@ SAFETY RULES:
 - Be conservative with health claims
 - Clearly distinguish between nutrition advice and medical advice
 
-You have access to tools to research products, analyze nutrition data, and query databases. Use them wisely to provide comprehensive, accurate responses.`
+You have access to tools to research products, analyze nutrition data, and query databases. Use them wisely to provide comprehensive, accurate responses.
+Dont send the response in markdown send it in normal properly formated text`
   }
 
   /**
