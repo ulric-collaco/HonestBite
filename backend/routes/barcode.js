@@ -76,48 +76,69 @@ async function extractHandler(req, res, next) {
     const imageBuffer = req.file.buffer
     const startedAt = Date.now()
 
-    // 1) Detect barcode boxes using Hugging Face
+    // 1) Detect barcode boxes using Hugging Face (best-effort)
     let detections = []
+    let hfFailed = false
     const tDetectStart = Date.now()
     try {
       detections = await detectBarcodesHF(imageBuffer)
     } catch (e) {
-      logger.error('HF detection error:', e)
-      return res.status(502).json({ error: 'Barcode detection service unavailable', details: e.message })
+      hfFailed = true
+      logger.warn('HF detection unavailable, falling back to direct ZXing decode:', e.message)
+      // continue; we'll try decoding whole image as a fallback
     }
     const tDetectMs = Date.now() - tDetectStart
 
-    // 2) For each detection, crop region and attempt to decode via ZXing
+    // 2) Decode barcodes
     const barcodes = []
     const tDecodeStart = Date.now()
-    for (const det of detections) {
-      const [x, y, w, h] = det.box
-      if (w < 5 || h < 5) continue
-      try {
-        const cropBuf = await sharp(imageBuffer).extract({ left: Math.max(0, x), top: Math.max(0, y), width: Math.max(1, w), height: Math.max(1, h) })
-          .toFormat('png')
-          .toBuffer()
-        // Try multiple scales to improve decoding robustness
-        const scales = [1, 1.5, 2]
-        let decoded = null
-        for (const s of scales) {
-          const scaled = s === 1 ? cropBuf : await sharp(cropBuf).resize({ width: Math.round(w * s), height: Math.round(h * s), fit: 'fill' }).toBuffer()
-          decoded = await decodeBarcodeWithZXing(scaled)
-          if (decoded) break
-        }
 
-        if (decoded) {
-          // sanitize to digits when appropriate
-          const clean = decoded.toString().trim()
-          barcodes.push({ text: clean, box: det.box, score: det.score ?? 0.0 })
+    if (detections.length > 0) {
+      // Decode per detection crop
+      for (const det of detections) {
+        const [x, y, w, h] = det.box
+        if (w < 5 || h < 5) continue
+        try {
+          const cropBuf = await sharp(imageBuffer).extract({ left: Math.max(0, x), top: Math.max(0, y), width: Math.max(1, w), height: Math.max(1, h) })
+            .toFormat('png')
+            .toBuffer()
+          // Try multiple scales to improve decoding robustness
+          const scales = [1, 1.5, 2]
+          let decoded = null
+          for (const s of scales) {
+            const scaled = s === 1 ? cropBuf : await sharp(cropBuf).resize({ width: Math.round(w * s), height: Math.round(h * s), fit: 'fill' }).toBuffer()
+            decoded = await decodeBarcodeWithZXing(scaled)
+            if (decoded) break
+          }
+
+          if (decoded) {
+            const clean = decoded.toString().trim()
+            barcodes.push({ text: clean, box: det.box, score: det.score ?? 0.0 })
+          }
+        } catch (e) {
+          logger.warn('Crop/decode error for box', det.box, e.message)
+        }
+      }
+    } else {
+      // Fallback: try decoding the full image at multiple scales
+      try {
+        const base = await sharp(imageBuffer).toFormat('png').toBuffer()
+        const scales = [1, 1.5, 2]
+        for (const s of scales) {
+          const buf = s === 1 ? base : await sharp(base).resize({ width: Math.round((await sharp(base).metadata()).width * s) }).toBuffer()
+          const decoded = await decodeBarcodeWithZXing(buf)
+          if (decoded) {
+            barcodes.push({ text: decoded.toString().trim(), box: [0, 0, 0, 0], score: 0.0 })
+            break
+          }
         }
       } catch (e) {
-        logger.warn('Crop/decode error for box', det.box, e.message)
+        logger.warn('Fallback full-image decode failed:', e.message)
       }
     }
     const tDecodeMs = Date.now() - tDecodeStart
     const totalMs = Date.now() - startedAt
-    logger.info(`extract: detections=${detections.length}, decoded=${barcodes.length}, t_detect=${tDetectMs}ms, t_decode=${tDecodeMs}ms, total=${totalMs}ms`)
+  logger.info(`extract: hf_failed=${hfFailed}, detections=${detections.length}, decoded=${barcodes.length}, t_detect=${tDetectMs}ms, t_decode=${tDecodeMs}ms, total=${totalMs}ms`)
 
     // 3) Response
     return res.json({ boxes: detections, barcodes })

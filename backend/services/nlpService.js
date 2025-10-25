@@ -1,8 +1,9 @@
 import fetch from 'node-fetch'
 import { logger } from '../utils/logger.js'
 
-const HF_API_KEY = process.env.HUGGING_FACE_API_KEY || process.env.HF_TOKEN
-const HF_API_URL = 'https://api-inference.huggingface.co/models'
+const HF_API_KEY = process.env.HUGGING_FACE_API_KEY || process.env.HF_API_KEY || process.env.HF_TOKEN
+// Use Hugging Face Inference Providers router (api-inference deprecated)
+const HF_API_URL = 'https://router.huggingface.co/hf-inference/models'
 
 // Greenwashing buzzwords to detect
 const GREENWASHING_BUZZWORDS = [

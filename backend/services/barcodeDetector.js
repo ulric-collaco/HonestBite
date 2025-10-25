@@ -1,7 +1,9 @@
 import fetch from 'node-fetch'
 
-const HF_MODEL = 'Piero2411/YOLOV8s-Barcode-Detection'
-const HF_API_URL = `https://api-inference.huggingface.co/models/${HF_MODEL}`
+// Hardcoded Hugging Face model for barcode detection
+const HF_MODEL = 'keremberke/yolov8m-barcode-detection'
+// Use Hugging Face Inference Providers router (api-inference deprecated)
+const HF_API_URL = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`
 
 /**
  * Call Hugging Face Inference API to detect barcode bounding boxes.
@@ -9,7 +11,7 @@ const HF_API_URL = `https://api-inference.huggingface.co/models/${HF_MODEL}`
  * @returns {Promise<Array<{box:[number,number,number,number], label:string, score:number}>>}
  */
 export async function detectBarcodesHF(imageBuffer) {
-  const apiKey = process.env.HF_API_KEY || process.env.HUGGINGFACE_API_KEY
+  const apiKey = process.env.HF_API_KEY || process.env.HUGGING_FACE_API_KEY || process.env.HF_TOKEN
   if (!apiKey) {
     throw new Error('HF_API_KEY is not set in environment')
   }
@@ -25,7 +27,7 @@ export async function detectBarcodesHF(imageBuffer) {
 
   if (!res.ok) {
     const txt = await res.text().catch(() => '')
-    throw new Error(`Hugging Face API error: ${res.status} ${res.statusText} - ${txt}`)
+    throw new Error(`Hugging Face API error: ${res.status} ${res.statusText} - ${txt} (model: ${HF_MODEL})`)
   }
 
   const data = await res.json()
