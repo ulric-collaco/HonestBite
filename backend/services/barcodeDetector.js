@@ -1,7 +1,7 @@
 import fetch from 'node-fetch'
 
-// Hardcoded Hugging Face model for barcode detection
-const HF_MODEL = 'keremberke/yolov8m-barcode-detection'
+// Hardcoded Hugging Face model for barcode detection (as requested)
+const HF_MODEL = 'Piero2411/YOLOV8s-Barcode-Detection'
 // Use Hugging Face Inference Providers router (api-inference deprecated)
 const HF_API_URL = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`
 
