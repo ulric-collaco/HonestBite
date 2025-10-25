@@ -23,11 +23,44 @@ const PORT = process.env.PORT || 3001
 app.use(helmet())
 
 // CORS configuration
-const corsOptions = {
-  origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3000'],
-  credentials: true
+const parsedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+
+// Default dev origins if none provided
+const allowedOrigins = parsedOrigins.length > 0
+  ? parsedOrigins
+  : ['http://localhost:5173', 'http://localhost:3000']
+
+// Support wildcard domains like "*.vercel.app"
+const isOriginAllowed = (origin, list) => {
+  return list.some((entry) => {
+    if (entry.startsWith('*.')) {
+      // '*.vercel.app' -> '.vercel.app'
+      const suffix = entry.slice(1)
+      return typeof origin === 'string' && origin.endsWith(suffix)
+    }
+    return origin === entry
+  })
 }
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl)
+    if (!origin) return callback(null, true)
+    if (isOriginAllowed(origin, allowedOrigins)) {
+      return callback(null, true)
+    }
+    return callback(new Error(`Not allowed by CORS: ${origin}`))
+  },
+  credentials: true,
+  optionsSuccessStatus: 204
+}
+
 app.use(cors(corsOptions))
+// Explicitly handle preflight for all routes
+app.options('*', cors(corsOptions))
 
 // Rate limiting
 const limiter = rateLimit({
@@ -72,7 +105,7 @@ app.use(errorHandler)
 app.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`)
   logger.info(`📝 Environment: ${process.env.NODE_ENV}`)
-  logger.info(`🔗 CORS enabled for: ${process.env.CORS_ORIGINS}`)
+  logger.info(`🔗 CORS allowed origins: ${allowedOrigins.join(', ') || '(none)'}`)
 })
 
 export default app
