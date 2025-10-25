@@ -1,0 +1,44 @@
+.about-page {
+  padding: 3rem 1rem;
+}
+
+.about-card {
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--card-bg, #fff);
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 6px 18px rgba(20,20,30,0.06);
+  text-align: center;
+}
+
+.about-title {
+  font-size: 1.25rem;
+  margin: 0 0 1rem 0;
+}
+
+.about-metric {
+  margin: 1rem 0 0.5rem 0;
+}
+
+.about-metric .label {
+  font-size: 0.85rem;
+  color: var(--muted, #666);
+  margin-bottom: 0.25rem;
+}
+
+.about-metric .value {
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.about-metric .value.error {
+  color: #c0392b;
+}
+
+.about-note {
+  margin-top: 1.25rem;
+  color: var(--muted, #666);
+  font-size: 0.9rem;
+}

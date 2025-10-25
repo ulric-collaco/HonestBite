@@ -6,6 +6,7 @@ import Scanner from './pages/Scanner'
 import ScanResults from './pages/ScanResults'
 import Profile from './pages/Profile'
 import DoctorDashboard from './pages/DoctorDashboard'
+import About from './pages/About'
 import './App.css'
 
 function App() {
@@ -94,6 +95,10 @@ function App() {
           <Route 
             path="/doctor/:patientId" 
             element={<DoctorDashboard />} 
+          />
+          <Route
+            path="/about"
+            element={<About />}
           />
         </Routes>
         {/* Global Footer */}

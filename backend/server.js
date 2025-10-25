@@ -13,6 +13,7 @@ import productRoutes from './routes/product.js'
 import doctorRoutes from './routes/doctor.js'
 import barcodeRoutes from './routes/barcode.js'
 import agentRoutes from './routes/agent.js'
+import aboutRoutes from './routes/about.js'
 import { errorHandler } from './middleware/errorHandler.js'
 
 const app = express()
@@ -53,6 +54,7 @@ app.use('/api/product', productRoutes)
 app.use('/api/doctor', doctorRoutes)
 app.use('/api/barcode', barcodeRoutes)
 app.use('/api/agent', agentRoutes)
+app.use('/api/about', aboutRoutes)
 // OCR routes removed from current workflow
 
 // 404 handler
