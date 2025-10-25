@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './About.css'
-import api from '../services/api'
+import api, { checkHealth } from '../services/api'
 
 export default function About() {
   const [count, setCount] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  // Keep-alive interval ref so we can clear it on unmount
+  const keepAliveRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -23,10 +26,55 @@ export default function About() {
       }
     }
 
-    // Fetch on mount. Each visit to /about triggers a fresh request.
-    fetchCount()
+    const pingBackend = async () => {
+      try {
+        await checkHealth()
+      } catch (_) {
+        // ignore network errors for keep-alive
+      }
+    }
 
-    return () => { cancelled = true }
+    // Initial fetch + initial ping
+    fetchCount()
+    pingBackend()
+
+    // Every 9 minutes while the page is visible, ping /health to keep the Render service warm
+    const INTERVAL_MS = 9 * 60 * 1000
+    const startInterval = () => {
+      if (keepAliveRef.current) return
+      keepAliveRef.current = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          pingBackend()
+        }
+      }, INTERVAL_MS)
+    }
+
+    const stopInterval = () => {
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current)
+        keepAliveRef.current = null
+      }
+    }
+
+    // Handle tab visibility to avoid unnecessary pings
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        pingBackend()
+        startInterval()
+      } else {
+        stopInterval()
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibility)
+    // Start interval initially if visible
+    if (document.visibilityState === 'visible') startInterval()
+
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', onVisibility)
+      stopInterval()
+    }
   }, [])
 
   return (
