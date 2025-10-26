@@ -35,10 +35,30 @@ api.interceptors.response.use(
   }
 )
 
-// Health check
-export const checkHealth = async () => {
-  const response = await api.get('/health')
-  return response.data
+// Health check with retry and extended timeout for cold starts on host (e.g., Render)
+export const checkHealth = async (options = {}) => {
+  const timeout = options.timeout ?? 90000 // 90s to tolerate cold starts
+  const retries = options.retries ?? 2
+  const backoffBaseMs = options.backoffBaseMs ?? 1000
+
+  let attempt = 0
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      const response = await api.get('/health', { timeout })
+      return response.data
+    } catch (err) {
+      const isTimeout = err?.code === 'ECONNABORTED' || /timeout/i.test(err?.message || '')
+      const isNetwork = !err?.response
+      if (attempt < retries && (isTimeout || isNetwork)) {
+        const delay = backoffBaseMs * Math.pow(2, attempt)
+        await new Promise((r) => setTimeout(r, delay))
+        attempt += 1
+        continue
+      }
+      throw err
+    }
+  }
 }
 
 // User APIs
