@@ -19,48 +19,50 @@ import { errorHandler } from './middleware/errorHandler.js'
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// Security middleware
-app.use(helmet())
-
-// CORS configuration
+// CORS configuration (MOVE TO TOP)
 const parsedOrigins = (process.env.CORS_ORIGINS || '')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean)
 
-// Default dev origins if none provided
 const allowedOrigins = parsedOrigins.length > 0
   ? parsedOrigins
   : ['http://localhost:5173', 'http://localhost:3000']
 
-// Support wildcard domains like "*.vercel.app"
 const isOriginAllowed = (origin, list) => {
+  if (!origin) return true
+  const normalizedOrigin = origin.toLowerCase().trim()
+  
   return list.some((entry) => {
-    if (entry.startsWith('*.')) {
-      // '*.vercel.app' -> '.vercel.app'
-      const suffix = entry.slice(1)
-      return typeof origin === 'string' && origin.endsWith(suffix)
+    const normalizedEntry = entry.toLowerCase().trim()
+    if (normalizedEntry.startsWith('*.')) {
+      const suffix = normalizedEntry.slice(1)
+      return normalizedOrigin.endsWith(suffix)
     }
-    return origin === entry
+    return normalizedOrigin === normalizedEntry
   })
 }
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl)
     if (!origin) return callback(null, true)
     if (isOriginAllowed(origin, allowedOrigins)) {
       return callback(null, true)
     }
+    logger.error(`❌ CORS blocked origin: ${origin}. Allowed Origins: ${allowedOrigins.join(', ')}`)
     return callback(new Error(`Not allowed by CORS: ${origin}`))
   },
   credentials: true,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 200 // Use 200 for better compatibility
 }
 
 app.use(cors(corsOptions))
-// Explicitly handle preflight for all routes
 app.options('*', cors(corsOptions))
+
+// Security middleware (Helmet comes after CORS)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}))
 
 // Rate limiting
 const limiter = rateLimit({
