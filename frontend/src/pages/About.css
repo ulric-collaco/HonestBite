@@ -1,44 +1,129 @@
 .about-page {
-  padding: 3rem 1rem;
+  padding-bottom: 120px;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.4s var(--transition-smooth);
 }
 
 .about-card {
-  max-width: 720px;
+  max-width: 600px;
+  width: 100%;
   margin: 0 auto;
-  background: var(--card-bg, #fff);
-  border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 6px 18px rgba(20,20,30,0.06);
+  background: var(--color-card-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border-light);
   text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.about-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+}
+
+.about-logo {
+  font-size: 48px;
+  margin-bottom: var(--space-md);
+  opacity: 0.9;
 }
 
 .about-title {
-  font-size: 1.25rem;
-  margin: 0 0 1rem 0;
+  font-size: var(--font-size-xl);
+  font-family: var(--font-heading);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-md);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.about-team {
+  font-size: var(--font-size-base);
+  color: var(--color-primary);
+  font-weight: 600;
+  margin-bottom: var(--space-lg);
+}
+
+.about-divider {
+  height: 1px;
+  background: var(--color-border-light);
+  margin: var(--space-lg) auto;
+  width: 50%;
 }
 
 .about-metric {
-  margin: 1rem 0 0.5rem 0;
+  margin: var(--space-lg) 0;
 }
 
 .about-metric .label {
-  font-size: 0.85rem;
-  color: var(--muted, #666);
-  margin-bottom: 0.25rem;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  margin-bottom: 8px;
 }
 
 .about-metric .value {
-  font-size: 2rem;
-  font-weight: 600;
-  margin: 0;
+  font-size: 56px;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .about-metric .value.error {
-  color: #c0392b;
+  background: var(--color-danger);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .about-note {
-  margin-top: 1.25rem;
-  color: var(--muted, #666);
-  font-size: 0.9rem;
+  margin-top: var(--space-lg);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.about-link {
+  display: inline-block;
+  margin-top: var(--space-lg);
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-primary-light);
+  border-radius: var(--radius-full);
+  transition: var(--transition-smooth);
+}
+
+.about-link:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+@media (max-width: 600px) {
+  .about-card {
+    padding: var(--space-lg);
+  }
+  .about-title {
+    font-size: var(--font-size-lg);
+  }
+  .about-metric .value {
+    font-size: 48px;
+  }
 }

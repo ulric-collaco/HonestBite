@@ -1,6 +1,6 @@
 import express from 'express'
-import { PDFDocument, rgb } from 'pdf-lib'
-import { supabase } from '../config/database.js'
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { db } from '../config/database.js'
 import { logger } from '../utils/logger.js'
 
 const router = express.Router()
@@ -11,43 +11,95 @@ router.get('/:patient_id', async (req, res, next) => {
     const { patient_id } = req.params
 
     // Get patient info
-    const { data: patient, error: patientError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('user_id', patient_id)
-      .single()
+    const patient = await db.single('SELECT * FROM users WHERE user_id = ?', [patient_id])
 
-    if (patientError) {
+    if (!patient) {
       return res.status(404).json({ error: 'Patient not found' })
     }
 
     // Get scan history
-    const { data: scanHistory, error: scanError } = await supabase
-      .from('scans')
-      .select('*')
-      .eq('user_id', patient_id)
-      .order('scanned_at', { ascending: false })
-      .limit(50)
+    const { results: scanHistory } = await db.query(
+      'SELECT * FROM scans WHERE user_id = ? ORDER BY scanned_at DESC LIMIT 50',
+      [patient_id]
+    )
 
-    if (scanError) throw scanError
+    // Get clinical notes
+    const { results: notes } = await db.query(
+      'SELECT * FROM clinical_notes WHERE user_id = ? ORDER BY created_at DESC',
+      [patient_id]
+    )
+
+    // Get dismissed alerts
+    const { results: dismissed } = await db.query(
+      'SELECT alert_key FROM dismissed_alerts WHERE user_id = ?',
+      [patient_id]
+    )
+    const dismissedKeys = dismissed.map(d => d.alert_key)
+
+    // Parse data
+    const parsedPatient = {
+      ...patient,
+      health_conditions: JSON.parse(patient.health_conditions || '[]'),
+      allergies: JSON.parse(patient.allergies || '[]')
+    }
+    
+    const parsedScans = scanHistory.map(scan => ({
+      ...scan,
+      risk_factors: JSON.parse(scan.risk_factors || '[]')
+    }))
 
     // Calculate risk patterns
-    const riskPatterns = calculateRiskPatterns(scanHistory)
+    const riskPatterns = calculateRiskPatterns(parsedScans)
 
-    // Generate alerts
-    const alerts = generateDoctorAlerts(scanHistory, patient)
+    // Generate alerts and filter dismissed ones
+    const allAlerts = generateDoctorAlerts(parsedScans, parsedPatient)
+    const activeAlerts = allAlerts.filter(alert => !dismissedKeys.includes(alert.id))
 
     res.json({
-      patient: {
-        user_id: patient.user_id,
-        health_conditions: patient.health_conditions,
-        allergies: patient.allergies,
-        created_at: patient.created_at
-      },
-      scan_history: scanHistory,
+      patient: parsedPatient,
+      scan_history: parsedScans,
       risk_patterns: riskPatterns,
-      alerts
+      alerts: activeAlerts,
+      notes: notes
     })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Add a clinical note
+router.post('/:patient_id/notes', async (req, res, next) => {
+  try {
+    const { patient_id } = req.params
+    const { note_text } = req.body
+
+    if (!note_text) return res.status(400).json({ error: 'Note text is required' })
+
+    await db.query(
+      'INSERT INTO clinical_notes (user_id, note_text) VALUES (?, ?)',
+      [patient_id, note_text]
+    )
+
+    res.status(201).json({ message: 'Note added successfully' })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Dismiss an alert persistently
+router.post('/:patient_id/dismiss-alert', async (req, res, next) => {
+  try {
+    const { patient_id } = req.params
+    const { alert_key } = req.body
+
+    if (!alert_key) return res.status(400).json({ error: 'Alert key is required' })
+
+    await db.query(
+      'INSERT OR IGNORE INTO dismissed_alerts (user_id, alert_key) VALUES (?, ?)',
+      [patient_id, alert_key]
+    )
+
+    res.json({ message: 'Alert dismissed' })
   } catch (error) {
     next(error)
   }
@@ -58,35 +110,36 @@ router.get('/:patient_id/report', async (req, res, next) => {
   try {
     const { patient_id } = req.params
 
-    // Get patient data
-    const { data: patient, error: patientError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('user_id', patient_id)
-      .single()
+    const patient = await db.single('SELECT * FROM users WHERE user_id = ?', [patient_id])
 
-    if (patientError) {
+    if (!patient) {
       return res.status(404).json({ error: 'Patient not found' })
     }
 
-    // Get scan history
-    const { data: scanHistory, error: scanError } = await supabase
-      .from('scans')
-      .select('*')
-      .eq('user_id', patient_id)
-      .order('scanned_at', { ascending: false })
-      .limit(50)
+    const { results: scanHistory } = await db.query(
+      'SELECT * FROM scans WHERE user_id = ? ORDER BY scanned_at DESC LIMIT 100',
+      [patient_id]
+    )
 
-    if (scanError) throw scanError
+    const parsedPatient = {
+      ...patient,
+      health_conditions: JSON.parse(patient.health_conditions || '[]'),
+      allergies: JSON.parse(patient.allergies || '[]')
+    }
+
+    const parsedScans = scanHistory.map(scan => ({
+      ...scan,
+      risk_factors: JSON.parse(scan.risk_factors || '[]')
+    }))
 
     // Generate PDF
-    const pdfBytes = await generatePDFReport(patient, scanHistory)
+    const pdfBytes = await generatePDFReport(parsedPatient, parsedScans)
 
     res.setHeader('Content-Type', 'application/pdf')
-    res.setHeader('Content-Disposition', `attachment; filename="patient-${patient_id}-report.pdf"`)
+    res.setHeader('Content-Disposition', `attachment; filename="honestbite-report-${patient_id}.pdf"`)
     res.send(Buffer.from(pdfBytes))
 
-    logger.info(`PDF report generated for patient: ${patient_id}`)
+    logger.info(`Professional PDF report generated for patient: ${patient_id}`)
   } catch (error) {
     next(error)
   }
@@ -96,24 +149,14 @@ router.get('/:patient_id/report', async (req, res, next) => {
  * Calculate risk patterns from scan history
  */
 function calculateRiskPatterns(scanHistory) {
-  if (!scanHistory || scanHistory.length === 0) {
-    return {}
-  }
+  if (!scanHistory || scanHistory.length === 0) return {}
 
-  const oneWeekAgo = new Date()
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-
-  const recentScans = scanHistory.filter(
-    scan => new Date(scan.scanned_at) >= oneWeekAgo
-  )
+  const oneWeekAgo = new Date(); oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+  const recentScans = scanHistory.filter(s => new Date(s.scanned_at) >= oneWeekAgo)
 
   const riskyScans = recentScans.filter(scan => scan.truth_score <= 5)
-  const highSugarScans = recentScans.filter(
-    scan => scan.risk_factors?.some(r => r.includes('Sugar'))
-  )
-  const highSodiumScans = recentScans.filter(
-    scan => scan.risk_factors?.some(r => r.includes('Sodium'))
-  )
+  const highSugarScans = recentScans.filter(scan => scan.risk_factors?.some(r => r.includes('Sugar')))
+  const highSodiumScans = recentScans.filter(scan => scan.risk_factors?.some(r => r.includes('Sodium')))
 
   const avgScore = scanHistory.length > 0
     ? Math.round(scanHistory.reduce((sum, s) => sum + s.truth_score, 0) / scanHistory.length)
@@ -129,125 +172,106 @@ function calculateRiskPatterns(scanHistory) {
 }
 
 /**
- * Generate alerts for doctor
+ * Generate alerts for doctor with Advanced Risk Detection
  */
 function generateDoctorAlerts(scanHistory, patient) {
   const alerts = []
+  const oneWeekAgo = new Date(); oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+  const recentScans = scanHistory.filter(s => new Date(s.scanned_at) >= oneWeekAgo)
 
-  const oneWeekAgo = new Date()
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+  // 1. Threshold-based Sugar Alert (Diabetics)
+  if (patient.health_conditions?.includes('Diabetes')) {
+    const thresholdSugar = 22.5 // High threshold for single item
+    const criticalScans = recentScans.filter(scan => {
+      const sugarFactor = scan.risk_factors?.find(r => r.includes('Sugar Content:'))
+      if (!sugarFactor) return false
+      const amount = parseFloat(sugarFactor.match(/[\d.]+/)?.[0] || '0')
+      return amount > thresholdSugar
+    })
 
-  const recentScans = scanHistory.filter(
-    scan => new Date(scan.scanned_at) >= oneWeekAgo
-  )
+    if (criticalScans.length > 0) {
+      alerts.push({
+        id: `sugar-clinical-${patient.user_id}`,
+        title: 'Critical Sugar Intake Detected',
+        message: `Patient scanned ${criticalScans.length} products with >22.5g sugar per 100g.`,
+        severity: 'high'
+      })
+    }
+  }
 
-  const riskyScans = recentScans.filter(scan => scan.truth_score <= 5)
-
-  // Alert if 3+ risky scans per week
+  // 2. Frequency-based Risky Pattern
+  const riskyScans = recentScans.filter(scan => scan.truth_score <= 4)
   if (riskyScans.length >= 3) {
     alerts.push({
-      id: `alert-${Date.now()}-1`,
-      title: 'High Risk Pattern Detected',
-      message: `Patient scanned ${riskyScans.length} risky products (score ≤5) in the past week`,
-      timestamp: new Date().toISOString()
+      id: `risky-pattern-${patient.user_id}`,
+      title: 'Persistent Low-Score Purchases',
+      message: `${riskyScans.length} products with Truth Score <4 detected in the last rolling 7 days.`,
+      severity: 'medium'
     })
-  }
-
-  // Check for specific health concerns
-  if (patient.health_conditions?.includes('Diabetes')) {
-    const highSugarScans = recentScans.filter(
-      scan => scan.risk_factors?.some(r => r.toLowerCase().includes('sugar'))
-    )
-    
-    if (highSugarScans.length >= 2) {
-      alerts.push({
-        id: `alert-${Date.now()}-2`,
-        title: 'Diabetes Management Concern',
-        message: `Patient (diabetic) scanned ${highSugarScans.length} high-sugar products this week`,
-        timestamp: new Date().toISOString()
-      })
-    }
-  }
-
-  if (patient.health_conditions?.includes('Hypertension')) {
-    const highSodiumScans = recentScans.filter(
-      scan => scan.risk_factors?.some(r => r.toLowerCase().includes('sodium'))
-    )
-    
-    if (highSodiumScans.length >= 2) {
-      alerts.push({
-        id: `alert-${Date.now()}-3`,
-        title: 'Hypertension Management Concern',
-        message: `Patient (hypertensive) scanned ${highSodiumScans.length} high-sodium products this week`,
-        timestamp: new Date().toISOString()
-      })
-    }
   }
 
   return alerts
 }
 
 /**
- * Generate PDF report
+ * Upgraded Professional PDF Report
  */
 async function generatePDFReport(patient, scanHistory) {
   const pdfDoc = await PDFDocument.create()
-  const page = pdfDoc.addPage([595, 842]) // A4 size
+  const page = pdfDoc.addPage([595, 842])
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
   const { width, height } = page.getSize()
 
-  // Title
-  page.drawText('Patient Nutrition Report', {
-    x: 50,
-    y: height - 50,
-    size: 24,
-    color: rgb(0.15, 0.25, 0.91)
-  })
+  // Header Branding
+  page.drawRectangle({ x: 0, y: height - 80, width, height: 80, color: rgb(0.05, 0.1, 0.25) })
+  page.drawText('HonestBite', { x: 40, y: height - 45, size: 28, font: fontBold, color: rgb(1, 1, 1) })
+  page.drawText('Clinical Nutritional Assessment', { x: 40, y: height - 65, size: 12, font, color: rgb(0.8, 0.8, 0.8) })
 
-  // Patient Info
-  let yPos = height - 100
-  page.drawText(`Patient ID: ${patient.user_id}`, { x: 50, y: yPos, size: 12 })
+  let yPos = height - 120
+
+  // Patient Info Header
+  page.drawText('PATIENT PROFILE', { x: 40, y: yPos, size: 14, font: fontBold, color: rgb(0.2, 0.2, 0.2) })
+  yPos -= 25
+  page.drawText(`ID: ${patient.user_id}`, { x: 40, y: yPos, size: 10, font })
+  page.drawText(`Conditions: ${patient.health_conditions.join(', ') || 'None'}`, { x: 200, y: yPos, size: 10, font })
+  yPos -= 20
+  page.drawText(`Generated: ${new Date().toLocaleDateString()}`, { x: 40, y: yPos, size: 10, font })
+  
+  // Risk Indicators Table
+  yPos -= 40
+  page.drawText('RECENT CONSUMPTION REGISTRY', { x: 40, y: yPos, size: 14, font: fontBold })
   yPos -= 25
 
-  if (patient.health_conditions && patient.health_conditions.length > 0) {
-    page.drawText(`Health Conditions: ${patient.health_conditions.join(', ')}`, {
-      x: 50,
-      y: yPos,
-      size: 12
-    })
-    yPos -= 25
-  }
-
-  if (patient.allergies && patient.allergies.length > 0) {
-    page.drawText(`Allergies: ${patient.allergies.join(', ')}`, {
-      x: 50,
-      y: yPos,
-      size: 12
-    })
-    yPos -= 25
-  }
-
-  // Scan History
-  yPos -= 30
-  page.drawText('Recent Scan History:', { x: 50, y: yPos, size: 16, color: rgb(0, 0, 0) })
+  // Table Headers
+  page.drawRectangle({ x: 40, y: yPos - 5, width: 515, height: 20, color: rgb(0.9, 0.9, 0.9) })
+  page.drawText('Date', { x: 50, y: yPos, size: 10, font: fontBold })
+  page.drawText('Product Name', { x: 120, y: yPos, size: 10, font: fontBold })
+  page.drawText('Barcode', { x: 300, y: yPos, size: 10, font: fontBold })
+  page.drawText('Truth Score', { x: 450, y: yPos, size: 10, font: fontBold })
   yPos -= 25
 
-  const recentScans = scanHistory.slice(0, 15)
-  for (const scan of recentScans) {
-    if (yPos < 100) break // Prevent overflow
+  const latestScans = scanHistory.slice(0, 25)
+  for (const scan of latestScans) {
+    if (yPos < 60) break
 
-    const date = new Date(scan.scanned_at).toLocaleDateString('en-IN')
-    const text = `${date} - ${scan.product_name} (Score: ${scan.truth_score}/10)`
+    const scoreColor = scan.truth_score > 7 ? rgb(0.1, 0.6, 0.2) : scan.truth_score > 4 ? rgb(0.8, 0.5, 0) : rgb(0.8, 0.1, 0.1)
     
-    page.drawText(text, { x: 50, y: yPos, size: 10 })
+    page.drawText(new Date(scan.scanned_at).toLocaleDateString().slice(0, 10), { x: 50, y: yPos, size: 9, font })
+    page.drawText(scan.product_name.slice(0, 25), { x: 120, y: yPos, size: 9, font })
+    page.drawText(scan.barcode.slice(0, 15), { x: 300, y: yPos, size: 9, font })
+    
+    // Draw Truth Score with colored indicator
+    page.drawRectangle({ x: 450, y: yPos - 2, width: 25, height: 12, color: scoreColor })
+    page.drawText(`${scan.truth_score}`, { x: 458, y: yPos, size: 10, font: fontBold, color: rgb(1, 1, 1) })
+    
     yPos -= 20
+    page.drawLine({ start: { x: 40, y: yPos + 5 }, end: { x: 555, y: yPos + 5 }, thickness: 0.5, color: rgb(0.9, 0.9, 0.9) })
   }
 
   // Footer
-  page.drawText(`Generated on ${new Date().toLocaleString('en-IN')}`, {
-    x: 50,
-    y: 30,
-    size: 10,
-    color: rgb(0.5, 0.5, 0.5)
+  page.drawText('CONFIDENTIAL MEDICAL RECORD - This report is for clinical evaluation purposes only.', {
+    x: 40, y: 30, size: 8, font, color: rgb(0.6, 0.6, 0.6)
   })
 
   return await pdfDoc.save()

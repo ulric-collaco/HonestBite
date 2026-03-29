@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Leaf } from 'lucide-react'
 import './About.css'
 import api, { checkHealth } from '../services/api'
 
@@ -7,7 +9,6 @@ export default function About() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // Keep-alive interval ref so we can clear it on unmount
   const keepAliveRef = useRef(null)
 
   useEffect(() => {
@@ -29,16 +30,12 @@ export default function About() {
     const pingBackend = async () => {
       try {
         await checkHealth()
-      } catch (_) {
-        // ignore network errors for keep-alive
-      }
+      } catch (_) {}
     }
 
-    // Initial fetch + initial ping
     fetchCount()
     pingBackend()
 
-    // Every 9 minutes while the page is visible, ping /health to keep the Render service warm
     const INTERVAL_MS = 9 * 60 * 1000
     const startInterval = () => {
       if (keepAliveRef.current) return
@@ -56,7 +53,6 @@ export default function About() {
       }
     }
 
-    // Handle tab visibility to avoid unnecessary pings
     const onVisibility = () => {
       if (document.visibilityState === 'visible') {
         pingBackend()
@@ -67,7 +63,6 @@ export default function About() {
     }
 
     document.addEventListener('visibilitychange', onVisibility)
-    // Start interval initially if visible
     if (document.visibilityState === 'visible') startInterval()
 
     return () => {
@@ -78,23 +73,30 @@ export default function About() {
   }, [])
 
   return (
-    <main className="about-page container">
-      <section className="about-card">
-        <h1 className="about-title">Made by Ulric Swar Sherwin Diva</h1>
+    <div className="about-page container fade-in">
+      <div className="about-card">
+        <div className="about-logo" style={{ display: 'flex', justifyContent: 'center', color: 'var(--color-primary)' }}><Leaf size={48} /></div>
+        
+        <h1 className="about-title">Bringing transparency to<br/>your daily nutrition.</h1>
+        <div className="about-team">Made by Ulric, Swar, Sherwin, Diva</div>
+        
+        <div className="about-divider"></div>
 
         <div className="about-metric">
-          <p className="label">Users served now</p>
+          <p className="label">Users Empowered</p>
           {loading ? (
-            <p className="value">Loading…</p>
+            <p className="value" style={{ fontSize: 32, opacity: 0.5 }}>Loading…</p>
           ) : error ? (
-            <p className="value error">Error: {error}</p>
+            <p className="value error" style={{ fontSize: 24 }}>Error: {error}</p>
           ) : (
-            <p className="value" aria-live="polite">{count.toLocaleString()}</p>
+            <p className="value" aria-live="polite">{(count || 0).toLocaleString()}</p>
           )}
         </div>
 
-        <p className="about-note">This page fetches the latest value from the database each time it's opened.</p>
-      </section>
-    </main>
+        <p className="about-note">We believe that knowing what you consume should be simple, accurate, and accessible to everyone. HonestBite reveals the truth behind labels.</p>
+        
+        <Link to="/home" className="about-link">Return to Dashboard</Link>
+      </div>
+    </div>
   )
 }

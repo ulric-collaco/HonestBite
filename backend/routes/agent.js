@@ -1,6 +1,6 @@
 import express from 'express'
 import { nutritionAgent } from '../services/aiAgent.js'
-import { supabase } from '../config/database.js'
+import { db } from '../config/database.js'
 import { logger } from '../utils/logger.js'
 
 const router = express.Router()
@@ -20,19 +20,23 @@ router.post('/chat', async (req, res, next) => {
     }
 
     // Get user profile for context
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('*')
-      .eq('user_id', user_id)
-      .single()
+    const user = await db.single('SELECT * FROM users WHERE user_id = ?', [user_id])
+    const userProfile = user ? {
+      ...user,
+      health_conditions: JSON.parse(user.health_conditions || '[]'),
+      allergies: JSON.parse(user.allergies || '[]')
+    } : null
 
     // Get recent scan history for context
-    const { data: scanHistory } = await supabase
-      .from('scans')
-      .select('*')
-      .eq('user_id', user_id)
-      .order('scanned_at', { ascending: false })
-      .limit(5)
+    const { results: rawScanHistory } = await db.query(
+      'SELECT * FROM scans WHERE user_id = ? ORDER BY scanned_at DESC LIMIT 5',
+      [user_id]
+    )
+    
+    const scanHistory = rawScanHistory.map(scan => ({
+      ...scan,
+      risk_factors: JSON.parse(scan.risk_factors || '[]')
+    }))
 
     // Build context for the agent
     const agentContext = {
@@ -76,11 +80,12 @@ router.post('/analyze-product', async (req, res, next) => {
     }
 
     // Get user profile
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('*')
-      .eq('user_id', user_id)
-      .single()
+    const user = await db.single('SELECT * FROM users WHERE user_id = ?', [user_id])
+    const userProfile = user ? {
+      ...user,
+      health_conditions: JSON.parse(user.health_conditions || '[]'),
+      allergies: JSON.parse(user.allergies || '[]')
+    } : null
 
     const query = specific_question || 
       `Please analyze this product for my health profile and provide personalized recommendations.`
@@ -133,14 +138,13 @@ router.post('/research-unknown', async (req, res, next) => {
     }
 
     // Get user profile for personalized advice
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('*')
-      .eq('user_id', user_id)
-      .single()
-
-    if (userProfile) {
-      context.userProfile = userProfile
+    const user = await db.single('SELECT * FROM users WHERE user_id = ?', [user_id])
+    if (user) {
+      context.userProfile = {
+        ...user,
+        health_conditions: JSON.parse(user.health_conditions || '[]'),
+        allergies: JSON.parse(user.allergies || '[]')
+      }
     }
 
     const result = await nutritionAgent.processQuery(user_id, query, context)
@@ -178,24 +182,27 @@ router.get('/suggest-alternatives/:barcode', async (req, res, next) => {
     }
 
     // Get the current product
-    const { data: currentProduct } = await supabase
-      .from('products')
-      .select('*')
-      .eq('barcode', barcode)
-      .single()
+    const product = await db.single('SELECT * FROM products WHERE barcode = ?', [barcode])
 
-    if (!currentProduct) {
+    if (!product) {
       return res.status(404).json({ 
         error: 'Product not found' 
       })
     }
 
+    const currentProduct = {
+      ...product,
+      nutrition_facts: JSON.parse(product.nutrition_facts || '{}'),
+      risk_flags: JSON.parse(product.risk_flags || '[]')
+    }
+
     // Get user profile
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('*')
-      .eq('user_id', user_id)
-      .single()
+    const user = await db.single('SELECT * FROM users WHERE user_id = ?', [user_id])
+    const userProfile = user ? {
+      ...user,
+      health_conditions: JSON.parse(user.health_conditions || '[]'),
+      allergies: JSON.parse(user.allergies || '[]')
+    } : null
 
     const query = `Can you suggest healthier alternatives to this product that are available in Indian markets?`
 
@@ -275,4 +282,4 @@ router.post('/explain', async (req, res, next) => {
   }
 })
 
-export default router
+export default router

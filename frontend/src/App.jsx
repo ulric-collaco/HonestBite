@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
+import { Home as HomeIcon, ScanLine, User, Moon, Sun } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import Onboarding from './pages/Onboarding'
 import Home from './pages/Home'
@@ -9,13 +10,32 @@ import DoctorDashboard from './pages/DoctorDashboard'
 import About from './pages/About'
 import './App.css'
 
+const BottomNav = () => {
+  const location = useLocation()
+  return (
+    <nav className="nav" role="navigation">
+      <Link to="/home" className={`nav-item ${location.pathname === '/home' ? 'active' : ''}`}>
+        <span className="nav-icon"><HomeIcon size={24} /></span>
+        <span>Home</span>
+      </Link>
+      <Link to="/scanner" className={`nav-item ${location.pathname === '/scanner' ? 'active' : ''}`}>
+        <span className="nav-icon"><ScanLine size={24} /></span>
+        <span>Scan</span>
+      </Link>
+      <Link to="/profile" className={`nav-item ${location.pathname === '/profile' ? 'active' : ''}`}>
+        <span className="nav-icon"><User size={24} /></span>
+        <span>Profile</span>
+      </Link>
+    </nav>
+  )
+}
+
 function App() {
   const [isOnboarded, setIsOnboarded] = useState(false)
   const [userId, setUserId] = useState(null)
   const [theme, setTheme] = useState('light')
 
   useEffect(() => {
-    // Check if user has completed onboarding
     const storedUserId = localStorage.getItem('userId')
     const onboardingComplete = localStorage.getItem('onboardingComplete')
     
@@ -32,7 +52,6 @@ function App() {
     localStorage.setItem('onboardingComplete', 'true')
   }
 
-  // Theme handling (light/dark) without affecting app logic
   useEffect(() => {
     const saved = localStorage.getItem('hb-theme')
     const initial = (saved === 'light' || saved === 'dark') ? saved : 'light'
@@ -50,11 +69,10 @@ function App() {
   return (
     <Router>
       <div className="app">
-        {/* Global Header */}
         <header className="app-header" role="banner">
           <div className="container header-inner">
             <Link className="brand" to={isOnboarded ? '/home' : '/'} aria-label="HonestBite Home">
-              <img src="/logo.jpg" alt="HonestBite" className="brand-logo" />
+              <img src="/logo.jpg" alt="HonestBite Logo" className="brand-logo" />
               <span className="brand-name">HonestBite</span>
             </Link>
             <div className="header-actions">
@@ -66,47 +84,31 @@ function App() {
                 aria-pressed={theme === 'dark'}
                 title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
               >
-                {theme === 'light' ? '🌙' : '☀️'}
+                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
               </button>
             </div>
           </div>
         </header>
+        
         <Routes>
-          <Route 
-            path="/" 
-            element={isOnboarded ? <Navigate to="/home" /> : <Onboarding onComplete={handleOnboardingComplete} />} 
-          />
-          <Route 
-            path="/home" 
-            element={isOnboarded ? <Home userId={userId} /> : <Navigate to="/" />} 
-          />
-          <Route 
-            path="/scanner" 
-            element={isOnboarded ? <Scanner userId={userId} /> : <Navigate to="/" />} 
-          />
-          <Route 
-            path="/results" 
-            element={isOnboarded ? <ScanResults userId={userId} /> : <Navigate to="/" />} 
-          />
-          <Route 
-            path="/profile" 
-            element={isOnboarded ? <Profile userId={userId} /> : <Navigate to="/" />} 
-          />
-          <Route 
-            path="/doctor/:patientId" 
-            element={<DoctorDashboard />} 
-          />
-          <Route
-            path="/about"
-            element={<About />}
-          />
+          <Route path="/" element={isOnboarded ? <Navigate to="/home" /> : <Onboarding onComplete={handleOnboardingComplete} />} />
+          <Route path="/home" element={isOnboarded ? <Home userId={userId} /> : <Navigate to="/" />} />
+          <Route path="/scanner" element={isOnboarded ? <Scanner userId={userId} /> : <Navigate to="/" />} />
+          <Route path="/results" element={isOnboarded ? <ScanResults userId={userId} /> : <Navigate to="/" />} />
+          <Route path="/profile" element={isOnboarded ? <Profile userId={userId} /> : <Navigate to="/" />} />
+          <Route path="/doctor/:patientId" element={<DoctorDashboard />} />
+          <Route path="/about" element={<About />} />
         </Routes>
-        {/* Global Footer */}
-        <footer className="app-footer" role="contentinfo">
-          <div className="container footer-inner">
-            <p className="text-xs">© {new Date().getFullYear()} HonestBite • v1.0</p>
-          </div>
-        </footer>
+        
+        {isOnboarded && <BottomNav />}
+        
+        {!isOnboarded && (
+          <footer className="app-footer" role="contentinfo">
+            <div className="container footer-inner">
+              <p className="text-xs">© {new Date().getFullYear()} HonestBite • <Link to="/about">About Us</Link></p>
+            </div>
+          </footer>
+        )}
       </div>
     </Router>
   )

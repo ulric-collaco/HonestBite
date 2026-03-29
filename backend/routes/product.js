@@ -1,5 +1,5 @@
 import express from 'express'
-import { supabase } from '../config/database.js'
+import { db } from '../config/database.js'
 import { getProductByBarcode } from '../services/openFoodFacts.js'
 import { logger } from '../utils/logger.js'
 
@@ -10,15 +10,15 @@ router.get('/:barcode', async (req, res, next) => {
     const { barcode } = req.params
 
     // Check local database first
-    const { data: localProduct, error: localError } = await supabase
-      .from('products')
-      .select('*')
-      .eq('barcode', barcode)
-      .single()
+    const localProduct = await db.single('SELECT * FROM products WHERE barcode = ?', [barcode])
 
-    if (localProduct && !localError) {
+    if (localProduct) {
       return res.json({
-        product_data: localProduct,
+        product_data: {
+          ...localProduct,
+          nutrition_facts: JSON.parse(localProduct.nutrition_facts || '{}'),
+          risk_flags: JSON.parse(localProduct.risk_flags || '[]')
+        },
         source: 'local_cache'
       })
     }
@@ -28,18 +28,22 @@ router.get('/:barcode', async (req, res, next) => {
       const productData = await getProductByBarcode(barcode)
       
       if (productData) {
-        // Cache in local database
-        await supabase
-          .from('products')
-          .upsert([
-            {
-              barcode: productData.barcode,
-              name: productData.name,
-              ingredients: productData.ingredients,
-              nutrition_facts: productData.nutrition_facts,
-              data_source: 'Open Food Facts'
-            }
-          ])
+        // Cache in local database (Upsert)
+        await db.query(`
+          INSERT INTO products (barcode, name, ingredients, nutrition_facts, data_source, last_updated)
+          VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          ON CONFLICT(barcode) DO UPDATE SET
+            name = excluded.name,
+            ingredients = excluded.ingredients,
+            nutrition_facts = excluded.nutrition_facts,
+            last_updated = CURRENT_TIMESTAMP
+        `, [
+          productData.barcode,
+          productData.name,
+          productData.ingredients,
+          JSON.stringify(productData.nutrition_facts),
+          'Open Food Facts'
+        ])
 
         return res.json({
           product_data: productData,
@@ -51,20 +55,17 @@ router.get('/:barcode', async (req, res, next) => {
     }
 
     // Check FSSAI manual database
-    const { data: fssaiProduct, error: fssaiError } = await supabase
-      .from('fssai_products')
-      .select('*')
-      .eq('barcode', barcode)
-      .single()
+    const fssaiProduct = await db.single('SELECT * FROM fssai_products WHERE barcode = ?', [barcode])
 
-    if (fssaiProduct && !fssaiError) {
+    if (fssaiProduct) {
+      const nutritionInfo = JSON.parse(fssaiProduct.nutrition_info || '{}')
       return res.json({
         product_data: {
           name: fssaiProduct.name,
           brand: fssaiProduct.brand,
           category: fssaiProduct.category,
           barcode: fssaiProduct.barcode,
-          nutrition_facts: fssaiProduct.nutrition_info?.nutrition_facts || {}
+          nutrition_facts: nutritionInfo.nutrition_facts || {}
         },
         source: 'fssai_manual'
       })
@@ -80,3 +81,4 @@ router.get('/:barcode', async (req, res, next) => {
 })
 
 export default router
+

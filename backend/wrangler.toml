@@ -1,0 +1,9 @@
+name = "honestbite-backend"
+main = "server.js"
+compatibility_date = "2024-03-25"
+
+[[d1_databases]]
+binding = "honestbite_db"
+database_name = "honestbite_db"
+database_id = "6a9e787d-80bb-498d-8660-edf982c2aaeb"
+migrations_dir = "migrations"

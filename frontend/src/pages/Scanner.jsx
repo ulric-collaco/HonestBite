@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Camera, Keyboard, Smartphone, ImagePlus, FileText, Sparkles, Target, Ruler, Binary, Lightbulb } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { scanProduct, extractBarcodes } from '../services/api'
 import { isValidBarcode, scanBarcodeFromImage } from '../utils/barcode'
 import './Scanner.css'
@@ -9,22 +10,20 @@ function Scanner({ userId }) {
   const fileInputRef = useRef(null)
   const cameraInputRef = useRef(null)
   
-  const [mode, setMode] = useState('scan') // 'scan' | 'manual'
+  const [mode, setMode] = useState('scan') 
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState('')
   const [manualBarcode, setManualBarcode] = useState('')
   const [detectedBarcode, setDetectedBarcode] = useState('')
   const [processingStep, setProcessingStep] = useState('')
-  
 
   const processImage = async (file) => {
     setScanning(true)
     setError('')
     setDetectedBarcode('')
-  setProcessingStep('Extracting barcode from image...')
+    setProcessingStep('Extracting barcode from image...')
 
     try {
-      // Server-first: try backend detection+decode
       let decoded = null
       try {
         setProcessingStep('Detecting barcode on server...')
@@ -34,10 +33,9 @@ function Scanner({ userId }) {
           decoded = first
         }
       } catch (srvErr) {
-        console.warn('Server extract failed, falling back to local decode:', srvErr?.message || srvErr)
+        console.warn('Server extract failed, falling back:', srvErr)
       }
 
-      // Fallback to local decoder if needed
       if (!decoded) {
         try {
           setProcessingStep('Trying on-device barcode decoding...')
@@ -47,18 +45,15 @@ function Scanner({ userId }) {
         }
       }
 
-      // Sanitize: keep only digits (some decoders may include stray symbols)
       decoded = (decoded || '').toString().replace(/\D/g, '')
 
       if (!isValidBarcode(decoded)) {
         throw new Error('Invalid or unsupported barcode detected')
       }
 
-      // Show the detected barcode
       setDetectedBarcode(decoded)
       setProcessingStep('Fetching product information...')
 
-      // Send to backend for analysis by barcode
       const result = await scanProduct({
         user_id: userId,
         barcode: decoded,
@@ -66,7 +61,7 @@ function Scanner({ userId }) {
       })
       if (result?.not_found) {
         const bc = result.barcode || decoded
-        setError(`${result.message || 'Product not found. You can try again or enter the barcode manually.'} (Barcode: ${bc || 'N/A'})`)
+        setError(`${result.message || 'Product not found.'} (Barcode: ${bc || 'N/A'})`)
         setProcessingStep('')
         setScanning(false)
         return
@@ -93,7 +88,6 @@ function Scanner({ userId }) {
     const file = event.target.files?.[0]
     if (!file) return
     await processImage(file)
-    // Reset input so same file can be selected again
     event.target.value = ''
   }
 
@@ -101,19 +95,11 @@ function Scanner({ userId }) {
     const file = event.target.files?.[0]
     if (!file) return
     await processImage(file)
-    // Reset input so same file can be selected again
     event.target.value = ''
   }
 
-  // (Manual crop removed)
-
-  // (Label OCR flow removed)
-
   const handleManualSubmit = async (e) => {
     e.preventDefault()
-
-    console.log('Manual submit - User ID:', userId)
-    console.log('Manual submit - Barcode:', manualBarcode)
 
     if (!isValidBarcode(manualBarcode)) {
       setError('Please enter a valid barcode (6-14 digits)')
@@ -126,7 +112,6 @@ function Scanner({ userId }) {
     setProcessingStep('Fetching product information...')
 
     try {
-      console.log('Calling scanProduct API...')
       const result = await scanProduct({
         user_id: userId,
         barcode: manualBarcode,
@@ -134,18 +119,13 @@ function Scanner({ userId }) {
       })
       if (result?.not_found) {
         const bc = result.barcode || manualBarcode
-        setError(`${result.message || 'Product not found. Please double-check the barcode or try again later.'} (Barcode: ${bc || 'N/A'})`)
+        setError(`${result.message || 'Product not found.'} (Barcode: ${bc || 'N/A'})`)
         setProcessingStep('')
         setScanning(false)
         return
       }
-
-      console.log('API Response:', result)
       navigate('/results', { state: { scanResult: result } })
     } catch (err) {
-      console.error('Manual scan error - Full error:', err)
-      console.error('Error response:', err.response)
-      console.error('Error message:', err.message)
       const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message || 'Product not found. Please check the barcode.'
       setError(errorMsg)
       setDetectedBarcode('')
@@ -156,10 +136,10 @@ function Scanner({ userId }) {
   }
 
   return (
-    <div className="scanner-page page">
-      <div className="page-header">
-        <h1 className="page-title">Scan Product</h1>
-        <p>Choose how to scan your product</p>
+    <div className="scanner-page page fade-in">
+      <div className="scanner-header container">
+        <h1>Add a Product</h1>
+        <p>Scan a barcode to uncover health data</p>
       </div>
 
       <div className="container">
@@ -169,110 +149,73 @@ function Scanner({ userId }) {
             className={`mode-toggle-btn ${mode === 'scan' ? 'active' : ''}`}
             onClick={() => setMode('scan')}
           >
-            📷 Scan Barcode
+            <span className="icon"><Camera size={18} /></span> Scan
           </button>
           <button
             className={`mode-toggle-btn ${mode === 'manual' ? 'active' : ''}`}
             onClick={() => setMode('manual')}
           >
-            ⌨️ Enter Barcode
+            <span className="icon"><Keyboard size={18} /></span> Manual
           </button>
         </div>
 
-        
-
-
-
         {error && (
-          <div className="alert alert-danger">
+          <div className="alert alert-danger stagger-1">
             {error}
           </div>
         )}
 
         {mode === 'scan' ? (
-          <>
-            <div className="scan-options">
-              <div className="scan-option-card">
-                <div className="scan-icon-large">📷</div>
-                <h2>Take Photo</h2>
-                <p>Use your camera to capture the product barcode</p>
-                <button
-                  className="btn btn-primary btn-large"
-                  onClick={() => cameraInputRef.current?.click()}
-                  disabled={scanning}
-                >
-                  {scanning ? 'Processing...' : 'Open Camera'}
-                </button>
-              </div>
-
-              <div className="scan-divider">
-                <span>OR</span>
-              </div>
-
-              <div className="scan-option-card">
-                <div className="scan-icon-large">📁</div>
-                <h2>Upload Image</h2>
-                <p>Select a photo where the barcode is visible</p>
-                <button
-                  className="btn btn-secondary btn-large"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={scanning}
-                >
-                  {scanning ? 'Processing...' : 'Choose File'}
-                </button>
-              </div>
+          <div className="scan-options stagger-2">
+            <div className="scan-option-card card">
+              <div className="scan-icon-large"><Smartphone size={48} /></div>
+              <h2>Take a Photo</h2>
+              <p>Capture the barcode directly using your camera</p>
+              <button
+                className="btn btn-primary btn-large"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={scanning}
+              >
+                {scanning ? 'Processing...' : 'Open Camera'}
+              </button>
             </div>
 
-            {/* Hidden file inputs */}
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              style={{ display: 'none' }}
-              onChange={handleCameraCapture}
-            />
+            <div className="scan-divider">
+              <span>OR</span>
+            </div>
+
+            <div className="scan-option-card card">
+              <div className="scan-icon-large"><ImagePlus size={48} /></div>
+              <h2>Upload Image</h2>
+              <p>Select an existing photo from your gallery</p>
+              <button
+                className="btn btn-secondary btn-large"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={scanning}
+              >
+                {scanning ? 'Processing...' : 'Choose File'}
+              </button>
+            </div>
             
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleFileUpload}
-            />
-
-            {scanning && (
-              <div className="processing-overlay">
-                <div className="spinner"></div>
-                <p>{processingStep}</p>
-                {detectedBarcode && (
-                  <div className="detected-barcode">
-                    <p className="barcode-label">Detected Barcode:</p>
-                    <p className="barcode-value">{detectedBarcode}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="scanner-tips">
-              <h3>📝 Tips for Best Results</h3>
+            <div className="scanner-tips stagger-3">
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FileText size={20} /> Pro Tips</h3>
               <ul>
-                <li>✓ Ensure good lighting and avoid glare on the barcode</li>
-                <li>✓ Fill the frame with the barcode and keep it in focus</li>
-                <li>✓ Keep the barcode straight and not curved</li>
+                <li><span className="icon" style={{ display: 'flex' }}><Sparkles size={16} /></span> Ensure good lighting to avoid glare</li>
+                <li><span className="icon" style={{ display: 'flex' }}><Target size={16} /></span> Center the barcode filling the frame</li>
+                <li><span className="icon" style={{ display: 'flex' }}><Ruler size={16} /></span> Keep the barcode flat and straight</li>
               </ul>
             </div>
-          </>
+          </div>
         ) : (
-          <form onSubmit={handleManualSubmit} className="manual-form">
-            <div className="manual-icon">🔢</div>
-            <h3>Enter Barcode Number</h3>
-            <p className="text-secondary">Type or paste the barcode from the product packaging</p>
+          <form onSubmit={handleManualSubmit} className="manual-form card stagger-2">
+            <div className="manual-icon"><Binary size={48} /></div>
+            <h2 className="text-center mb-1">Enter Barcode</h2>
+            <p className="text-secondary text-center mb-3">Type the digits found below the lines</p>
 
             <input
               type="text"
               className="input barcode-input"
-              placeholder="e.g., 8901030123456"
+              placeholder="e.g. 8901030123456"
               value={manualBarcode}
               onChange={(e) => setManualBarcode(e.target.value.replace(/\D/g, ''))}
               maxLength={14}
@@ -285,51 +228,47 @@ function Scanner({ userId }) {
               className="btn btn-primary btn-large"
               disabled={scanning || !manualBarcode}
             >
-              {scanning ? 'Searching...' : '🔍 Look Up Product'}
+              {scanning ? 'Searching...' : 'Look Up Product'}
             </button>
 
             <div className="manual-tips">
-              <p>💡 Barcodes are usually 8-14 digits long</p>
-              <p>💡 Found under the product barcode lines</p>
+              <p style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}><span><Lightbulb size={16} /></span> Usually 8-14 digits long</p>
+              <p style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}><span><Lightbulb size={16} /></span> Found right under the vertical lines</p>
             </div>
           </form>
         )}
 
+        {/* Hidden inputs */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: 'none' }}
+          onChange={handleCameraCapture}
+        />
         
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleFileUpload}
+        />
+
         {scanning && (
           <div className="processing-overlay">
             <div className="spinner"></div>
-            <p>Processing image...</p>
+            <p>{processingStep}</p>
+            {detectedBarcode && (
+              <div className="detected-barcode">
+                <p className="barcode-label">Detected Barcode</p>
+                <p className="barcode-value">{detectedBarcode}</p>
+              </div>
+            )}
           </div>
         )}
-
-        <div className="scanner-tips">
-          <h3>📝 Tips for Best Results</h3>
-          <ul>
-            <li>✓ Ensure good lighting and avoid glare on the barcode</li>
-            <li>✓ Fill the frame with the barcode and keep it in focus</li>
-            <li>✓ Keep the barcode straight and not curved</li>
-          </ul>
-        </div>
       </div>
-
-      
-
-      {/* Bottom Navigation */}
-      <nav className="nav">
-        <Link to="/home" className="nav-item">
-          <span className="nav-icon">🏠</span>
-          <span>Home</span>
-        </Link>
-        <Link to="/scanner" className="nav-item active">
-          <span className="nav-icon">📷</span>
-          <span>Scan</span>
-        </Link>
-        <Link to="/profile" className="nav-item">
-          <span className="nav-icon">👤</span>
-          <span>Profile</span>
-        </Link>
-      </nav>
     </div>
   )
 }

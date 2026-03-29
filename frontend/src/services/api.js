@@ -107,6 +107,21 @@ export const exportDoctorReport = async (patientId) => {
   return response.data
 }
 
+export const addClinicalNote = async (patientId, noteText) => {
+  const response = await api.post(`/api/doctor/${patientId}/notes`, {
+    note_text: noteText
+  })
+  return response.data
+}
+
+export const dismissDoctorAlert = async (patientId, alertKey) => {
+  const response = await api.post(`/api/doctor/${patientId}/dismiss-alert`, {
+    alert_key: alertKey
+  })
+  return response.data
+}
+
+
 // Legacy remote decode removed; server-first /extract is used instead
 
 // Extract barcodes using server-side detector + ZXing

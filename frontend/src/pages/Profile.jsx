@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { User, Activity, Edit2, Ban, Save, Stethoscope } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { getUser, updateUser } from '../services/api'
-import { copyToClipboard, buildDoctorLink } from '../utils/helpers'
+import { buildDoctorLink } from '../utils/helpers'
 import './Profile.css'
 
 const HEALTH_CONDITIONS = [
@@ -28,24 +29,23 @@ function Profile({ userId }) {
   })
 
   useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        setLoading(true)
+        const userData = await getUser(userId)
+        setUser(userData)
+        setFormData({
+          healthConditions: userData.health_conditions || [],
+          allergies: userData.allergies || []
+        })
+      } catch (error) {
+        console.error('Error loading user:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
     loadUserData()
   }, [userId])
-
-  const loadUserData = async () => {
-    try {
-      setLoading(true)
-      const userData = await getUser(userId)
-      setUser(userData)
-      setFormData({
-        healthConditions: userData.health_conditions || [],
-        allergies: userData.allergies || []
-      })
-    } catch (error) {
-      console.error('Error loading user:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const toggleHealthCondition = (condition) => {
     setFormData(prev => ({
@@ -92,64 +92,52 @@ function Profile({ userId }) {
     }
   }
 
-  const handleCopyDoctorLink = async () => {
-    const link = buildDoctorLink(userId)
-    const success = await copyToClipboard(link)
-    if (success) {
-      setMessage('Doctor link copied to clipboard!')
-      setTimeout(() => setMessage(''), 3000)
-    }
-  }
-
   if (loading) {
     return (
-      <div className="page">
-        <div className="container">
-          <div className="spinner"></div>
-        </div>
+      <div className="page loader-page">
+        <div className="spinner"></div>
       </div>
     )
   }
 
   return (
-    <div className="profile-page page">
-      <div className="page-header">
-        <h1 className="page-title">👤 Profile</h1>
-        <p>Manage your health information</p>
+    <div className="profile-page page fade-in">
+      <div className="profile-header container stagger-1">
+        <div className="profile-avatar"><User size={48} /></div>
+        <h1>Your Profile</h1>
+        <p>Manage health info and preferences</p>
       </div>
 
-      <div className="container">
+      <div className="container" style={{ paddingTop: 0 }}>
         {message && (
           <div className="alert alert-success">
             {message}
           </div>
         )}
 
-        {/* User ID */}
-        <div className="card">
-          <h3>User ID</h3>
+        <div className="card stagger-2 mb-2">
+          <p className="text-secondary text-sm mb-1">ACCOUNT IDENTIFIER</p>
           <p className="user-id-text">{userId}</p>
         </div>
 
-        {/* Health Conditions */}
-        <div className="card">
+        <div className="card stagger-3 mb-2">
           <div className="card-header">
-            <h3>🏥 Health Conditions</h3>
+            <h3 style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span className="icon" style={{ display: 'flex' }}><Activity size={24} /></span> Health Conditions</h3>
             {!editing && (
               <button 
                 className="btn-edit"
                 onClick={() => setEditing(true)}
-                title="Edit health conditions and allergies"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                ✏️ Edit
+                <span style={{ display: 'flex' }}><Edit2 size={16} /></span> Edit
               </button>
             )}
           </div>
 
           {editing ? (
             <>
-              <p className="text-sm" style={{ marginBottom: '1rem', color: 'var(--color-text-secondary)' }}>
-                Select all health conditions that apply to you. This helps us provide personalized nutrition insights.
+              <p className="text-sm text-secondary mb-2">
+                Select all health conditions that apply. This helps us personalize insights.
               </p>
               <div className="checkbox-grid">
                 {HEALTH_CONDITIONS.map((condition) => (
@@ -169,44 +157,34 @@ function Profile({ userId }) {
               <div className="tags">
                 {user?.health_conditions?.length > 0 ? (
                   user.health_conditions.map((condition, index) => (
-                    <span key={index} className="tag tag-health">{condition}</span>
+                    <span key={index} className="tag">{condition}</span>
                   ))
                 ) : (
-                  <p className="text-secondary">No health conditions added</p>
+                  <p className="text-secondary text-sm">No health conditions added</p>
                 )}
               </div>
-              {user?.health_conditions?.length === 0 && (
-                <button 
-                  className="btn btn-secondary"
-                  onClick={() => setEditing(true)}
-                  style={{ marginTop: '1rem' }}
-                >
-                  ➕ Add Health Conditions
-                </button>
-              )}
             </>
           )}
         </div>
 
-        {/* Allergies */}
-        <div className="card">
+        <div className="card stagger-4 mb-2">
           <div className="card-header">
-            <h3>🚫 Allergies</h3>
+            <h3 style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span className="icon" style={{ display: 'flex' }}><Ban size={24} /></span> Allergies</h3>
             {!editing && (
               <button 
                 className="btn-edit"
                 onClick={() => setEditing(true)}
-                title="Edit allergies and health conditions"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                ✏️ Edit
+                <span style={{ display: 'flex' }}><Edit2 size={16} /></span> Edit
               </button>
             )}
           </div>
 
           {editing ? (
             <>
-              <p className="text-sm" style={{ marginBottom: '1rem', color: 'var(--color-text-secondary)' }}>
-                Select all allergies that apply to you. This helps us provide personalized warnings.
+              <p className="text-sm text-secondary mb-2">
+                Select allergies to receive warnings when scanning products.
               </p>
               <div className="checkbox-grid">
                 {ALLERGIES.map((allergy) => (
@@ -226,33 +204,24 @@ function Profile({ userId }) {
               <div className="tags">
                 {user?.allergies?.length > 0 ? (
                   user.allergies.map((allergy, index) => (
-                    <span key={index} className="tag tag-allergy">{allergy}</span>
+                    <span key={index} className="tag">{allergy}</span>
                   ))
                 ) : (
-                  <p className="text-secondary">No allergies added</p>
+                  <p className="text-secondary text-sm">No allergies added</p>
                 )}
               </div>
-              {user?.allergies?.length === 0 && (
-                <button 
-                  className="btn btn-secondary"
-                  onClick={() => setEditing(true)}
-                  style={{ marginTop: '1rem' }}
-                >
-                  ➕ Add Allergies
-                </button>
-              )}
             </>
           )}
         </div>
 
         {editing && (
-          <div className="action-buttons">
+          <div className="action-buttons mb-3 stagger-4">
             <button
               className="btn btn-primary btn-large"
               onClick={handleSave}
               disabled={saving}
             >
-              {saving ? 'Saving...' : '💾 Save Changes'}
+              {saving ? 'Saving...' : <><div style={{ display: 'flex' }}><Save size={18} /></div> Save Changes</>}
             </button>
             <button
               className="btn btn-outline btn-large"
@@ -265,53 +234,39 @@ function Profile({ userId }) {
               }}
               disabled={saving}
             >
-              Cancel
+              Cancel 
             </button>
           </div>
         )}
 
         {/* Doctor Link */}
-        {user && (
-          <div className="card doctor-link-card">
-            <h3>👨‍⚕️ Share with Doctor</h3>
-            <p className="text-secondary mb-2">
-              Share this link with your doctor to give them access to your nutrition data
+        {!editing && user && (
+          <div className="card ai-insights-card stagger-4 mt-2">
+            <h3 className="mb-1" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span className="icon" style={{ display: 'flex' }}><Stethoscope size={24} /></span> Share with Doctor</h3>
+            <p className="text-secondary text-sm mb-2">
+              Share this link with your doctor for better consultations.
             </p>
             <div className="doctor-link-container">
               <input 
                 type="text" 
                 value={buildDoctorLink(userId)} 
                 readOnly 
-                className="doctor-link-input"
-                onClick={() => navigate(`/doctor/${userId}`)}
-                title="Open doctor's dashboard"
+                className="input doctor-link-input"
+                onClick={(e) => e.target.select()}
               />
               <button 
                 className="btn btn-primary"
-                onClick={handleCopyDoctorLink}
+                onClick={() => {
+                  navigator.clipboard.writeText(buildDoctorLink(userId))
+                  alert('Copied to clipboard!')
+                }}
               >
-                📋 Copy
+                Copy
               </button>
             </div>
           </div>
         )}
       </div>
-
-      {/* Bottom Navigation */}
-      <nav className="nav">
-        <Link to="/home" className="nav-item">
-          <span className="nav-icon">🏠</span>
-          <span>Home</span>
-        </Link>
-        <Link to="/scanner" className="nav-item">
-          <span className="nav-icon">📷</span>
-          <span>Scan</span>
-        </Link>
-        <Link to="/profile" className="nav-item active">
-          <span className="nav-icon">👤</span>
-          <span>Profile</span>
-        </Link>
-      </nav>
     </div>
   )
 }

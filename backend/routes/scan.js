@@ -1,11 +1,10 @@
 import express from 'express'
-import { supabase } from '../config/database.js'
+import { db } from '../config/database.js'
 import { getProductByBarcode } from '../services/openFoodFacts.js'
 import { detectGreenwashing } from '../services/nlpService.js'
 import { calculateTruthScore, generateHealthAlerts, identifyRiskFactors } from '../utils/truthScore.js'
 import { nutritionAgent } from '../services/aiAgent.js'
 import { logger } from '../utils/logger.js'
-import { generateWithGeminiSafe } from '../services/gemini.js'
 
 const router = express.Router()
 
@@ -23,6 +22,7 @@ router.post('/', async (req, res, next) => {
 
     // Get product data
     let tOFF = 0, tDB = 0, tScore = 0, tAlerts = 0, tGreen = 0, tAI = 0
+    
     if (barcode) {
       // Try Open Food Facts first
       try {
@@ -38,21 +38,18 @@ router.post('/', async (req, res, next) => {
 
       // Fallback to local FSSAI database
       if (!productData) {
-        const { data, error } = await supabase
-          .from('fssai_products')
-          .select('*')
-          .eq('barcode', barcode)
-          .single()
-
-        if (data && !error) {
-          const t = Date.now()
+        const t = Date.now()
+        const fssaiProduct = await db.single('SELECT * FROM fssai_products WHERE barcode = ?', [barcode])
+        
+        if (fssaiProduct) {
+          const nutritionInfo = JSON.parse(fssaiProduct.nutrition_info || '{}')
           productData = {
-            name: data.name,
-            brand: data.brand,
-            category: data.category,
-            barcode: data.barcode,
-            ingredients: data.nutrition_info?.ingredients || '',
-            nutrition_facts: data.nutrition_info?.nutrition_facts || {},
+            name: fssaiProduct.name,
+            brand: fssaiProduct.brand,
+            category: fssaiProduct.category,
+            barcode: fssaiProduct.barcode,
+            ingredients: nutritionInfo.ingredients || '',
+            nutrition_facts: nutritionInfo.nutrition_facts || {},
             data_source: 'FSSAI Manual Database'
           }
           dataSource = 'FSSAI Manual Database'
@@ -60,20 +57,23 @@ router.post('/', async (req, res, next) => {
         }
       }
 
-      // Store product in database if not exists
+      // Store product in database if not exists (Upsert)
       if (productData) {
-        await supabase
-          .from('products')
-          .upsert([
-            {
-              barcode: productData.barcode,
-              name: productData.name,
-              ingredients: productData.ingredients,
-              nutrition_facts: productData.nutrition_facts,
-              data_source: dataSource
-            }
-          ])
-          .select()
+        await db.query(`
+          INSERT INTO products (barcode, name, ingredients, nutrition_facts, data_source, last_updated)
+          VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          ON CONFLICT(barcode) DO UPDATE SET
+            name = excluded.name,
+            ingredients = excluded.ingredients,
+            nutrition_facts = excluded.nutrition_facts,
+            last_updated = CURRENT_TIMESTAMP
+        `, [
+          productData.barcode,
+          productData.name,
+          productData.ingredients,
+          JSON.stringify(productData.nutrition_facts),
+          dataSource
+        ])
       }
     }
 
@@ -101,22 +101,23 @@ router.post('/', async (req, res, next) => {
     }
 
     // Get user profile
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('user_id', user_id)
-      .single()
+    const user = await db.single('SELECT * FROM users WHERE user_id = ?', [user_id])
+    const userData = user ? {
+      ...user,
+      health_conditions: JSON.parse(user.health_conditions || '[]'),
+      allergies: JSON.parse(user.allergies || '[]')
+    } : null
 
-    if (userError) {
+    if (!userData) {
       logger.warn('User not found, proceeding without profile:', user_id)
     }
 
-  // Calculate truth score (handle both legacy numeric and new object-with-breakdown forms)
-  const tScoreStart = Date.now()
-  const scoreResult = calculateTruthScore(productData, productData.nutrition_facts)
-  const truthScore = typeof scoreResult === 'number' ? scoreResult : (scoreResult?.score ?? null)
-  const truthScoreBreakdown = typeof scoreResult === 'object' ? (scoreResult.breakdown ? scoreResult.breakdown : scoreResult) : null
-  tScore = Date.now() - tScoreStart
+    // Calculate truth score
+    const tScoreStart = Date.now()
+    const scoreResult = calculateTruthScore(productData, productData.nutrition_facts)
+    const truthScore = typeof scoreResult === 'number' ? scoreResult : (scoreResult?.score ?? null)
+    const truthScoreBreakdown = typeof scoreResult === 'object' ? (scoreResult.breakdown ? scoreResult.breakdown : scoreResult) : null
+    tScore = Date.now() - tScoreStart
 
     // Generate health alerts
     const tAlertsStart = Date.now()
@@ -126,7 +127,7 @@ router.post('/', async (req, res, next) => {
     tAlerts = Date.now() - tAlertsStart
 
     // Identify risk factors
-  const riskFactors = identifyRiskFactors(productData, productData.nutrition_facts)
+    const riskFactors = identifyRiskFactors(productData, productData.nutrition_facts)
 
     // Detect greenwashing
     const tGreenStart = Date.now()
@@ -136,29 +137,25 @@ router.post('/', async (req, res, next) => {
     tGreen = Date.now() - tGreenStart
 
     // Save scan record
-    const { data: scanData, error: scanError } = await supabase
-      .from('scans')
-      .insert([
-        {
-          user_id,
-          product_name: productData.name,
-          barcode: productData.barcode,
-          truth_score: truthScore ?? 0,
-          risk_factors: riskFactors,
-          scan_type: scan_type || 'barcode'
-        }
-      ])
-      .select()
-      .single()
+    await db.query(
+      'INSERT INTO scans (user_id, product_name, barcode, truth_score, risk_factors, scan_type) VALUES (?, ?, ?, ?, ?, ?)',
+      [
+        user_id,
+        productData.name,
+        productData.barcode,
+        truthScore ?? 0,
+        JSON.stringify(riskFactors),
+        scan_type || 'barcode'
+      ]
+    )
 
-    if (scanError) {
-      logger.error('Error saving scan:', scanError)
-    }
+    // Get the ID of the scan we just created
+    const scanRow = await db.single('SELECT id FROM scans WHERE user_id = ? ORDER BY scanned_at DESC LIMIT 1', [user_id])
 
     // Get AI agent analysis for enhanced insights
     let aiInsights = null
     try {
-      const aiResultPromise = nutritionAgent.processQuery(
+      const aiResult = await nutritionAgent.processQuery(
         user_id,
         `Please provide detailed analysis and personalized recommendations for this product.`,
         {
@@ -168,14 +165,6 @@ router.post('/', async (req, res, next) => {
         }
       )
 
-      // Enforce max wait for AI insights
-      const tAIStart = Date.now()
-      const aiResult = await Promise.race([
-        aiResultPromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('ai_timeout')), 7000))
-      ])
-      tAI = Date.now() - tAIStart
-
       aiInsights = {
         analysis: aiResult.response,
         confidence: aiResult.confidence,
@@ -183,15 +172,11 @@ router.post('/', async (req, res, next) => {
       }
     } catch (aiError) {
       logger.warn('AI analysis skipped or timed out:', aiError.message)
-      // Continue without AI insights
     }
-
-    // Note: Consumption guidance is now generated via the Nutrition Assistant chat UI
-    // to avoid delaying the scan result. The chat component will request it separately.
 
     // Return response
     res.json({
-      scan_id: scanData?.id,
+      scan_id: scanRow?.id,
       product_info: productData,
       truth_score: truthScore ?? 0,
       truth_score_breakdown: truthScoreBreakdown || null,
@@ -202,11 +187,12 @@ router.post('/', async (req, res, next) => {
       ai_insights: aiInsights
     })
 
-  const totalMs = Date.now() - t0
-  logger.info(`scan: user=${user_id} name="${productData.name}" score=${truthScore ?? 'n/a'} t_total=${totalMs}ms t_off=${tOFF}ms t_db=${tDB}ms t_score=${tScore}ms t_alerts=${tAlerts}ms t_green=${tGreen}ms t_ai=${tAI}ms`)
+    const totalMs = Date.now() - t0
+    logger.info(`scan: user=${user_id} name="${productData.name}" score=${truthScore ?? 'n/a'} t_total=${totalMs}ms t_off=${tOFF}ms t_db=${tDB}ms t_score=${tScore}ms t_alerts=${tAlerts}ms t_green=${tGreen}ms t_ai=${tAI}ms`)
   } catch (error) {
     next(error)
   }
 })
 
 export default router
+

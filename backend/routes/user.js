@@ -1,5 +1,5 @@
 import express from 'express'
-import { supabase } from '../config/database.js'
+import { db } from '../config/database.js'
 import { logger } from '../utils/logger.js'
 
 const router = express.Router()
@@ -13,27 +13,38 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'user_id is required' })
     }
 
-    // Generate doctor link
-    const doctor_link = `${process.env.CORS_ORIGIN}/doctor/${user_id}`
+    const doctor_link = `${process.env.API_BASE_URL || 'http://localhost:3001'}/doctor/${user_id}`
+
+    // Check if user already exists
+    const existingUser = await db.single('SELECT * FROM users WHERE user_id = ?', [user_id])
+    
+    if (existingUser) {
+      return res.status(200).json({
+        ...existingUser,
+        health_conditions: JSON.parse(existingUser.health_conditions || '[]'),
+        allergies: JSON.parse(existingUser.allergies || '[]')
+      })
+    }
 
     // Insert user
-    const { data, error } = await supabase
-      .from('users')
-      .insert([
-        {
-          user_id,
-          health_conditions: health_conditions || [],
-          allergies: allergies || [],
-          doctor_link
-        }
-      ])
-      .select()
-      .single()
+    await db.query(
+      'INSERT INTO users (user_id, health_conditions, allergies, doctor_link) VALUES (?, ?, ?, ?)',
+      [
+        user_id,
+        JSON.stringify(health_conditions || []),
+        JSON.stringify(allergies || []),
+        doctor_link
+      ]
+    )
 
-    if (error) throw error
+    const newUser = await db.single('SELECT * FROM users WHERE user_id = ?', [user_id])
 
     logger.info(`User created: ${user_id}`)
-    res.status(201).json(data)
+    res.status(201).json({
+      ...newUser,
+      health_conditions: JSON.parse(newUser.health_conditions || '[]'),
+      allergies: JSON.parse(newUser.allergies || '[]')
+    })
   } catch (error) {
     next(error)
   }
@@ -44,20 +55,17 @@ router.get('/:user_id', async (req, res, next) => {
   try {
     const { user_id } = req.params
 
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('user_id', user_id)
-      .single()
+    const user = await db.single('SELECT * FROM users WHERE user_id = ?', [user_id])
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({ error: 'User not found' })
-      }
-      throw error
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
     }
 
-    res.json(data)
+    res.json({
+      ...user,
+      health_conditions: JSON.parse(user.health_conditions || '[]'),
+      allergies: JSON.parse(user.allergies || '[]')
+    })
   } catch (error) {
     next(error)
   }
@@ -69,20 +77,23 @@ router.put('/:user_id', async (req, res, next) => {
     const { user_id } = req.params
     const { health_conditions, allergies } = req.body
 
-    const { data, error } = await supabase
-      .from('users')
-      .update({
-        health_conditions: health_conditions || [],
-        allergies: allergies || []
-      })
-      .eq('user_id', user_id)
-      .select()
-      .single()
+    await db.query(
+      'UPDATE users SET health_conditions = ?, allergies = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+      [
+        JSON.stringify(health_conditions || []),
+        JSON.stringify(allergies || []),
+        user_id
+      ]
+    )
 
-    if (error) throw error
+    const updatedUser = await db.single('SELECT * FROM users WHERE user_id = ?', [user_id])
 
     logger.info(`User updated: ${user_id}`)
-    res.json(data)
+    res.json({
+      ...updatedUser,
+      health_conditions: JSON.parse(updatedUser.health_conditions || '[]'),
+      allergies: JSON.parse(updatedUser.allergies || '[]')
+    })
   } catch (error) {
     next(error)
   }
@@ -94,19 +105,22 @@ router.get('/:user_id/scans', async (req, res, next) => {
     const { user_id } = req.params
     const { limit = 20, offset = 0 } = req.query
 
-    const { data, error } = await supabase
-      .from('scans')
-      .select('*')
-      .eq('user_id', user_id)
-      .order('scanned_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+    const { results } = await db.query(
+      'SELECT * FROM scans WHERE user_id = ? ORDER BY scanned_at DESC LIMIT ? OFFSET ?',
+      [user_id, parseInt(limit), parseInt(offset)]
+    )
 
-    if (error) throw error
+    // Parse risk_factors for each scan
+    const scans = results.map(scan => ({
+      ...scan,
+      risk_factors: JSON.parse(scan.risk_factors || '[]')
+    }))
 
-    res.json({ scans: data })
+    res.json({ scans })
   } catch (error) {
     next(error)
   }
 })
 
 export default router
+

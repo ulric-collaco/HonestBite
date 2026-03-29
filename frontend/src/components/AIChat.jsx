@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { chatWithAgent } from '../services/api'
+import { Bot, ChevronDown, ChevronUp, Sparkles, Wrench, BarChart2, Loader2, Send, Trash2 } from 'lucide-react'
 import './AIChat.css'
 
 function AIChat({ userId, context = {}, placeholder = "Ask me anything about nutrition...", mode = 'default', autoGuidance = false, autoGuidanceOnExpand = false }) {
@@ -145,11 +146,11 @@ function AIChat({ userId, context = {}, placeholder = "Ask me anything about nut
     <div className={`ai-chat ${isExpanded ? 'expanded' : 'collapsed'}`}>
       <div className="chat-header" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="chat-title">
-          <span className="ai-icon">🤖</span>
+          <span className="ai-icon" style={{ display: 'flex' }}><Bot size={20} /></span>
           <span>Nutrition Assistant</span>
         </div>
-        <button className="toggle-btn" aria-label={isExpanded ? 'Collapse chat' : 'Expand chat'}>
-          {isExpanded ? '▼' : '▲'}
+        <button className="toggle-btn" aria-label={isExpanded ? 'Collapse chat' : 'Expand chat'} style={{ display: 'flex' }}>
+          {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
         </button>
       </div>
 
@@ -158,7 +159,7 @@ function AIChat({ userId, context = {}, placeholder = "Ask me anything about nut
           <div className="chat-messages">
             {messages.length === 0 && (
               <div className="welcome-message">
-                <p>👋 Hi! I'm your nutrition assistant. I can help you understand food products, explain health impacts, and suggest healthier alternatives.</p>
+                <p style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}><Sparkles size={16} style={{ flexShrink: 0, marginTop: '2px' }}/> Hi! I'm your nutrition assistant. I can help you understand food products, explain health impacts, and suggest healthier alternatives.</p>
                 <div className="quick-questions">
                   <p><strong>Quick questions to try:</strong></p>
                   {getQuickQuestions().slice(0, 3).map((question, index) => (
@@ -183,12 +184,12 @@ function AIChat({ userId, context = {}, placeholder = "Ask me anything about nut
                   />
                   {message.toolsUsed && message.toolsUsed.length > 0 && (
                     <div className="tools-used">
-                      <small>🔧 Used: {message.toolsUsed.join(', ')}</small>
+                      <small style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Wrench size={12} /> Used: {message.toolsUsed.join(', ')}</small>
                     </div>
                   )}
                   {message.confidence && (
                     <div className="confidence">
-                      <small>📊 Confidence: {Math.round(message.confidence * 100)}%</small>
+                      <small style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><BarChart2 size={12} /> Confidence: {Math.round(message.confidence * 100)}%</small>
                     </div>
                   )}
                 </div>
@@ -232,8 +233,9 @@ function AIChat({ userId, context = {}, placeholder = "Ask me anything about nut
                 disabled={!inputMessage.trim() || isLoading}
                 className="send-button"
                 aria-label="Send message"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                {isLoading ? '⏳' : '📤'}
+                {isLoading ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
               </button>
             </div>
             {messages.length > 0 && (
@@ -243,7 +245,7 @@ function AIChat({ userId, context = {}, placeholder = "Ask me anything about nut
                 className="clear-chat"
                 aria-label="Clear chat"
               >
-                🗑️ Clear
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Trash2 size={16} /> Clear</span>
               </button>
             )}
           </form>
